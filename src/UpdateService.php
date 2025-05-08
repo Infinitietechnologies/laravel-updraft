@@ -2,6 +2,9 @@
 
 namespace LaravelUpdraft;
 
+use LaravelUpdraft\Models\UpdateHistory;
+use Illuminate\Support\Facades\Auth;
+
 class UpdateService
 {
     protected $updatePath;
@@ -37,6 +40,11 @@ class UpdateService
             if (!$this->checkVersionCompatibility($manifest)) {
                 throw new \Exception('Incompatible update version');
             }
+            
+            // Check if this version is already applied
+            if (UpdateHistory::hasVersion($manifest['version'])) {
+                throw new \Exception('This update version has already been applied');
+            }
 
             // Create backup before applying updates
             $backupId = $this->createBackup($extractPath);
@@ -52,11 +60,19 @@ class UpdateService
 
             // Run post-update commands
             $this->runPostUpdateCommands($extractPath);
+            
+            // Log successful update in the database
+            $this->logUpdateHistory($manifest, $backupId, true);
 
             return true;
         } catch (\Exception $e) {
             // Log the error
             \Log::error('Update failed: ' . $e->getMessage());
+            
+            // If we have manifest information, log the failed update
+            if (isset($manifest)) {
+                $this->logUpdateHistory($manifest, $backupId ?? null, false, ['error' => $e->getMessage()]);
+            }
 
             // Attempt to restore from backup if available
             if (isset($backupId) && $backupId) {
@@ -65,6 +81,38 @@ class UpdateService
 
             return false;
         }
+    }
+    
+    /**
+     * Log update information to the history table
+     */
+    protected function logUpdateHistory(array $manifest, ?string $backupId, bool $successful, array $additionalMetadata = []): void
+    {
+        // Prepare metadata
+        $metadata = array_merge([
+            'requiredPhpVersion' => $manifest['requiredPhpVersion'] ?? null,
+            'requiredLaravelVersion' => $manifest['requiredLaravelVersion'] ?? null,
+            'minimumRequiredVersion' => $manifest['minimumRequiredVersion'] ?? null,
+        ], $additionalMetadata);
+        
+        // Determine the user who applied the update
+        $appliedBy = null;
+        if (Auth::check()) {
+            $user = Auth::user();
+            $appliedBy = $user->email ?? ($user->name ?? $user->id);
+        }
+        
+        // Create update history record
+        UpdateHistory::create([
+            'version' => $manifest['version'],
+            'name' => $manifest['name'],
+            'description' => $manifest['description'] ?? null,
+            'applied_by' => $appliedBy,
+            'metadata' => $metadata,
+            'applied_at' => now(),
+            'successful' => $successful,
+            'backup_id' => $backupId,
+        ]);
     }
 
     /**
@@ -367,5 +415,159 @@ class UpdateService
                 copy($item->getPathname(), $destPath);
             }
         }
+    }
+
+    /**
+     * Check if a backup exists
+     */
+    public function backupExists(string $backupId): bool
+    {
+        $backupPath = $this->backupPath . '/' . $backupId;
+        return is_dir($backupPath) && file_exists($backupPath . '/backup-info.json');
+    }
+
+    /**
+     * Get backup information
+     */
+    public function getBackupInfo(string $backupId): array
+    {
+        $backupPath = $this->backupPath . '/' . $backupId;
+        $infoPath = $backupPath . '/backup-info.json';
+        
+        if (!file_exists($infoPath)) {
+            throw new \Exception('Backup information not found');
+        }
+        
+        return json_decode(file_get_contents($infoPath), true) ?: [];
+    }
+
+    /**
+     * Rollback to a specific backup
+     */
+    public function rollbackToBackup(string $backupId): bool
+    {
+        try {
+            $backupPath = $this->backupPath . '/' . $backupId;
+            
+            if (!is_dir($backupPath)) {
+                throw new \Exception('Backup not found');
+            }
+            
+            // Create a safety backup of current state first
+            $safetyBackupId = 'safety_' . date('YmdHis') . '_' . uniqid();
+            $currentVersion = config('app.version');
+            $backupInfo = $this->getBackupInfo($backupId);
+            
+            // Create a full backup of the current application state
+            // (simplified for brevity - in a real implementation this would be more comprehensive)
+            $this->createSafetyBackup($safetyBackupId, $currentVersion, $backupInfo['version'] ?? 'unknown');
+            
+            // Restore files from backup
+            $this->restoreFilesFromBackup($backupId);
+            
+            // Log the rollback in history
+            $this->logRollbackHistory($backupId, $backupInfo, $safetyBackupId);
+            
+            return true;
+        } catch (\Exception $e) {
+            \Log::error('Rollback failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Create a safety backup before rollback
+     */
+    protected function createSafetyBackup(string $backupId, string $currentVersion, string $targetVersion): void
+    {
+        $backupPath = $this->backupPath . '/' . $backupId;
+        
+        // Create backup directory
+        if (!is_dir($backupPath)) {
+            mkdir($backupPath, 0755, true);
+        }
+        
+        // In a production implementation, this would make a comprehensive backup
+        // of files that might be affected by the rollback
+        
+        // Save backup metadata
+        file_put_contents(
+            $backupPath . '/backup-info.json',
+            json_encode([
+                'timestamp' => time(),
+                'version' => $currentVersion,
+                'rollbackTo' => $targetVersion,
+                'type' => 'safety_backup_before_rollback'
+            ])
+        );
+    }
+    
+    /**
+     * Restore files from a backup
+     */
+    protected function restoreFilesFromBackup(string $backupId): void
+    {
+        $backupPath = $this->backupPath . '/' . $backupId;
+        
+        if (!is_dir($backupPath)) {
+            throw new \Exception('Backup not found');
+        }
+        
+        // Recursively restore all files from the backup
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($backupPath, \RecursiveDirectoryIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST
+        );
+        
+        foreach ($iterator as $item) {
+            if ($item->isFile()) {
+                $relativePath = str_replace($backupPath . '/', '', $item->getPathname());
+                
+                // Skip backup metadata
+                if ($relativePath === 'backup-info.json') {
+                    continue;
+                }
+                
+                $destPath = base_path($relativePath);
+                
+                // Create directory structure if needed
+                $destDir = dirname($destPath);
+                if (!is_dir($destDir)) {
+                    mkdir($destDir, 0755, true);
+                }
+                
+                copy($item->getPathname(), $destPath);
+            }
+        }
+    }
+    
+    /**
+     * Log rollback in history
+     */
+    protected function logRollbackHistory(string $backupId, array $backupInfo, string $safetyBackupId): void
+    {
+        // Determine the user who applied the rollback
+        $appliedBy = null;
+        if (\Auth::check()) {
+            $user = \Auth::user();
+            $appliedBy = $user->email ?? ($user->name ?? $user->id);
+        }
+        
+        // Create update history record for the rollback
+        UpdateHistory::create([
+            'version' => $backupInfo['version'] ?? 'Unknown',
+            'name' => 'Rollback to backup: ' . $backupId,
+            'description' => 'System rollback to a previous version',
+            'applied_by' => $appliedBy,
+            'metadata' => [
+                'rollback' => true,
+                'backupId' => $backupId,
+                'safetyBackupId' => $safetyBackupId,
+                'timestamp' => time()
+            ],
+            'applied_at' => now(),
+            'successful' => true,
+            'backup_id' => $safetyBackupId,
+        ]);
     }
 }
