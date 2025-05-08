@@ -1,10 +1,9 @@
 @extends(config('laravel-updraft.layout', 'laravel-updraft::layouts.app'))
 
 @section('styles')
-    <link href="{{ asset('vendor/laravel-updraft/assets/plugins/filepond/filepond.min.css') }}" rel="stylesheet" />
-    <link href="{{ asset('vendor/laravel-updraft/assets/plugins/filepond/plugins/file-validate-type/filepond-plugin-file-validate-type.min.css') }}" rel="stylesheet" />
-    <link href="{{ asset('vendor/laravel-updraft/assets/plugins/filepond/plugins/file-poster/filepond-plugin-file-poster.min.css') }}" rel="stylesheet" />
-    <link href="{{ asset('vendor/laravel-updraft/assets/plugins/filepond/plugins/image-preview/filepond-plugin-image-preview.min.css') }}" rel="stylesheet" />
+    <link href="{{ asset($assetPath . '/plugins/filepond/filepond.min.css') }}" rel="stylesheet" />
+    <link href="{{ asset($assetPath . '/plugins/filepond/plugins/file-poster/filepond-plugin-file-poster.min.css') }}" rel="stylesheet" />
+    <link href="{{ asset($assetPath . '/plugins/filepond/plugins/image-preview/filepond-plugin-image-preview.min.css') }}" rel="stylesheet" />
 @endsection
 
 @section('content')
@@ -94,12 +93,12 @@
 
 @section('scripts')
     <!-- FilePond plugins -->
-    <script src="{{ asset('vendor/laravel-updraft/assets/plugins/filepond/plugins/file-validate-type/filepond-plugin-file-validate-type.min.js') }}"></script>
-    <script src="{{ asset('vendor/laravel-updraft/assets/plugins/filepond/plugins/file-validate-size/filepond-plugin-file-validate-size.min.js') }}"></script>
-    <script src="{{ asset('vendor/laravel-updraft/assets/plugins/filepond/plugins/file-poster/filepond-plugin-file-poster.min.js') }}"></script>
-    <script src="{{ asset('vendor/laravel-updraft/assets/plugins/filepond/plugins/image-preview/filepond-plugin-image-preview.min.js') }}"></script>
-    <script src="{{ asset('vendor/laravel-updraft/assets/plugins/filepond/filepond.min.js') }}"></script>
+    <script src="{{ asset($assetPath . '/plugins/filepond/plugins/file-validate-type/filepond-plugin-file-validate-type.min.js') }}"></script>
+    <script src="{{ asset($assetPath . '/plugins/filepond/plugins/file-validate-size/filepond-plugin-file-validate-size.min.js') }}"></script>
+    <script src="{{ asset($assetPath . '/plugins/filepond/plugins/file-poster/filepond-plugin-file-poster.min.js') }}"></script>
+    <script src="{{ asset($assetPath . '/plugins/filepond/plugins/image-preview/filepond-plugin-image-preview.min.js') }}"></script>
+    <script src="{{ asset($assetPath . '/plugins/filepond/filepond.min.js') }}"></script>
     
     <!-- FilePond Uploader Module -->
-    <script src="{{ asset('vendor/laravel-updraft/assets/js/modules/filepond-uploader.js') }}"></script>
+    <script src="{{ asset($assetPath . '/js/modules/filepond-uploader.js') }}"></script>
 @endsection

@@ -9,10 +9,10 @@
     <title>{{ config('app.name', 'Laravel') }} - {{ __('updraft.app_name') }}</title>
 
     <!-- Bootstrap 5.3 CSS -->
-    <link href="{{ asset('vendor/laravel-updraft/assets/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ asset($assetPath . '/css/bootstrap.min.css') }}" rel="stylesheet">
 
     <!-- FontAwesome Icons -->
-    <link href="{{ asset('vendor/laravel-updraft/assets/css/fontawesome.min.css') }}" rel="stylesheet">
+    <link href="{{ asset($assetPath . '/css/fontawesome.min.css') }}" rel="stylesheet">
 
     <style>
         body {
@@ -139,13 +139,13 @@
     </div>
 
     <!-- jQuery -->
-    <script src="{{ asset('vendor/laravel-updraft/assets/js/jquery.min.js') }}"></script>
+    <script src="{{ asset($assetPath . '/js/jquery.min.js') }}"></script>
 
     <!-- Bootstrap 5.3 JS Bundle with Popper -->
-    <script src="{{ asset('vendor/laravel-updraft/assets/js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ asset($assetPath . '/js/bootstrap.bundle.min.js') }}"></script>
 
     <!-- Main Laravel Updraft JS -->
-    <script src="{{ asset('vendor/laravel-updraft/assets/js/laravel-updraft.js') }}"></script>
+    <script src="{{ asset($assetPath . '/js/laravel-updraft.js') }}"></script>
 
     @yield('scripts')
 </body>

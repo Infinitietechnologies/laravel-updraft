@@ -84,5 +84,5 @@
 
 @section('scripts')
     <!-- Rollback Handler Module -->
-    <script src="{{ asset('vendor/laravel-updraft/assets/js/modules/rollback-handler.js') }}"></script>
+    <script src="{{ asset($assetPath . '/js/modules/rollback-handler.js') }}"></script>
 @endsection

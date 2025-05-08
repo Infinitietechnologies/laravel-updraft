@@ -81,6 +81,19 @@ class LaravelUpdraftServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__ . '/resources/views' => resource_path('views/vendor/laravel-updraft'),
         ], 'laravel-updraft-views');
+
+        // Register a view composer for all laravel-updraft views to provide asset paths
+        view()->composer('laravel-updraft::*', function ($view) {
+            // Check if the assets have been published to the vendor directory
+            $assetPath = 'vendor/laravel-updraft/assets';
+            
+            // For development environment, if vendor assets don't exist, use direct path
+            if (!file_exists(public_path($assetPath))) {
+                $assetPath = 'assets';
+            }
+            
+            $view->with('assetPath', $assetPath);
+        });
         
         // Register commands
         if ($this->app->runningInConsole()) {
