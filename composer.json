@@ -15,13 +15,13 @@
     },
     "autoload": {
         "psr-4": {
-            "YourusernameSpace\\LaravelUpdraft\\": "src/"
+            "LaravelUpdraft\\": "src/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "YourusernameSpace\\LaravelUpdraft\\ProjectUpdaterServiceProvider"
+                "LaravelUpdraft\\LaravelUpdraftServiceProvider"
             ]
         }
     },

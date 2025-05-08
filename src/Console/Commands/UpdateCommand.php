@@ -1,9 +1,9 @@
 <?php
 
-namespace Espionage\ProjectUpdater\Console\Commands;
+namespace LaravelUpdraft\Console\Commands;
 
 use Illuminate\Console\Command;
-use Espionage\ProjectUpdater\UpdateService;
+use LaravelUpdraft\UpdateService;
 
 class UpdateCommand extends Command
 {
@@ -12,7 +12,7 @@ class UpdateCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'project:update
+    protected $signature = 'updraft:update
                             {file? : Path to the update package ZIP file}
                             {--force : Force the update without confirmation}';
 
@@ -28,8 +28,8 @@ class UpdateCommand extends Command
      */
     public function handle(UpdateService $updateService)
     {
-        $this->info('Laravel Project Updater');
-        $this->line('-------------------------');
+        $this->info('Laravel Updraft');
+        $this->line('---------------');
         
         // Get the path to the update file
         $file = $this->argument('file');

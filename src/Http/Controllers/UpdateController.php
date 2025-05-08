@@ -1,10 +1,10 @@
 <?php
 
-namespace Espionage\ProjectUpdater\Http\Controllers;
+namespace LaravelUpdraft\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Espionage\ProjectUpdater\UpdateService;
+use LaravelUpdraft\UpdateService;
 use Illuminate\Support\Facades\Storage;
 
 class UpdateController extends Controller
@@ -14,7 +14,7 @@ class UpdateController extends Controller
      */
     public function index()
     {
-        return view('project-updater::update-form');
+        return view('laravel-updraft::update-form');
     }
     
     /**
@@ -40,16 +40,16 @@ class UpdateController extends Controller
                 Storage::delete($path);
                 
                 return redirect()
-                    ->route('project-updater.index')
+                    ->route('laravel-updraft.index')
                     ->with('success', 'Update successfully applied!');
             } else {
                 return redirect()
-                    ->route('project-updater.index')
+                    ->route('laravel-updraft.index')
                     ->with('error', 'Update failed. Check the logs for more information.');
             }
         } catch (\Exception $e) {
             return redirect()
-                ->route('project-updater.index')
+                ->route('laravel-updraft.index')
                 ->with('error', 'Update failed: ' . $e->getMessage());
         }
     }

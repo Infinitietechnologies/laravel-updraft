@@ -3,10 +3,10 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | Laravel Project Updater Configuration
+    | Laravel Updraft Configuration
     |--------------------------------------------------------------------------
     |
-    | This file contains the configuration for the Laravel Project Updater package.
+    | This file contains the configuration for the Laravel Updraft package.
     |
     */
 
