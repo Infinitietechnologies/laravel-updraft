@@ -85,11 +85,22 @@ class UpdateCommand extends Command
             
             $this->output->progressFinish();
             
-            if ($result) {
+            if ($result === true) {
                 $this->info('Update successfully applied!');
                 return 0;
             } else {
-                $this->error('Update failed. Check the logs for more information.');
+                // Result is an array with error details
+                $this->error('Update failed: ' . ($result['error'] ?? 'Unknown error'));
+                
+                if (isset($result['code'])) {
+                    $this->line('Error code: ' . $result['code']);
+                }
+                
+                if (isset($result['backupRestored']) && $result['backupRestored']) {
+                    $this->info('Your system has been restored to the previous state.');
+                }
+                
+                $this->line('Check the logs for more detailed information.');
                 return 1;
             }
         } catch (\Exception $e) {

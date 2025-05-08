@@ -57,7 +57,8 @@ class UpdateController extends Controller
             // Clean up the temporary file
             Storage::delete($path);
             
-            if ($result) {
+            // Check if result is true (success) or an array (error details)
+            if ($result === true) {
                 $message = 'Update successfully applied!';
                 
                 // Check if the request is AJAX or FilePond
@@ -72,13 +73,22 @@ class UpdateController extends Controller
                     ->route('laravel-updraft.index')
                     ->with('success', $message);
             } else {
-                $message = 'Update failed. Check the logs for more information.';
+                // Result is an array with error details
+                $error = is_array($result) ? $result['error'] : 'Update failed. Check the logs for more information.';
+                $backupRestored = is_array($result) && isset($result['backupRestored']) && $result['backupRestored'];
+                
+                $message = $error;
+                if ($backupRestored) {
+                    $message .= ' Your system has been restored to the previous state.';
+                }
                 
                 // Check if the request is AJAX or FilePond
                 if ($request->ajax() || $request->expectsJson()) {
                     return response()->json([
                         'success' => false, 
-                        'message' => $message
+                        'message' => $message,
+                        'error' => $error,
+                        'backupRestored' => $backupRestored
                     ], 500);
                 }
                 
@@ -264,5 +274,25 @@ class UpdateController extends Controller
                 ->route('laravel-updraft.rollback-options')
                 ->with('error', $message);
         }
+    }
+
+    /**
+     * Set the application locale and store it in the session
+     */
+    public function setLocale($locale, Request $request)
+    {
+        // Validate locale against available translations
+        $availableLocales = ['en', 'es'];
+        
+        if (!in_array($locale, $availableLocales)) {
+            $locale = 'en';  // Default to English if not valid
+        }
+        
+        // Store locale in session
+        session(['locale' => $locale]);
+        app()->setLocale($locale);
+        
+        // Redirect back to previous page or index
+        return redirect()->back() ?: redirect()->route('laravel-updraft.index');
     }
 }

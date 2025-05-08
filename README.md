@@ -1,6 +1,29 @@
 # Laravel Updraft
 
-A Laravel package to easily manage application updates through versioned update packages.
+A Laravel package to easily manage application updates through versioned update packages. Laravel Updraft provides a secure, reliable way to update your Laravel applications with minimal downtime and built-in rollback capabilities.
+
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/infinitietechnologies/laravel-updraft.svg)](https://packagist.org/packages/infinitietechnologies/laravel-updraft)
+[![License](https://img.shields.io/github/license/infinitietechnologies/laravel-updraft)](https://github.com/infinitietechnologies/laravel-updraft/blob/master/LICENSE)
+[![Laravel Version](https://img.shields.io/badge/Laravel-10.x%20%7C%2011.x%20%7C%2012.x-red)](https://laravel.com/)
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Usage](#usage)
+  - [Creating Update Packages](#creating-update-packages)
+  - [Applying Updates](#applying-updates)
+  - [Rolling Back Updates](#rolling-back-updates)
+- [Update Process](#update-process)
+- [Rollback Process](#rollback-process)
+- [Customizing the UI](#customizing-the-ui)
+- [Features](#features)
+- [Security](#security)
+  - [Authentication and Authorization](#authentication-and-authorization)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [Credits](#credits)
+- [License](#license)
 
 ## Installation
 
@@ -30,6 +53,18 @@ Or publish the views to customize the look and feel:
 php artisan vendor:publish --tag=laravel-updraft-views
 ```
 
+Finally, publish the assets to make them available publicly:
+
+```bash
+php artisan vendor:publish --tag=laravel-updraft-assets
+```
+
+Run the migrations to create the necessary database tables:
+
+```bash
+php artisan migrate
+```
+
 ## Configuration
 
 The published configuration file contains the following settings:
@@ -40,8 +75,7 @@ The published configuration file contains the following settings:
 - `backup_path`: The path where backups will be stored
 - `backup_retention`: The number of backups to keep (0 to keep all)
 - `layout`: The blade layout to use for the updraft views (defaults to 'layouts.app')
-- `verify_updates`: Enable or disable verification of update packages
-- `update_public_key`: The public key used to verify update packages
+- `content`: The content section name in your layout (defaults to 'content')
 
 ## Usage
 
@@ -133,6 +167,8 @@ update-package.zip/
 2. Upload the update package using the provided form
 3. The system will process the update and display the results
 
+The web interface provides a user-friendly way to upload and apply updates, with detailed error messages if something goes wrong.
+
 #### Via Artisan Command
 
 ```bash
@@ -144,6 +180,8 @@ or to skip confirmation:
 ```bash
 php artisan updraft:update path/to/update-package.zip --force
 ```
+
+The command-line interface is useful for automated deployments or when you prefer working in the terminal.
 
 ### Rolling Back Updates
 
@@ -187,8 +225,9 @@ When an update is applied, the system performs the following steps:
 6. Runs any new migrations
 7. Updates configuration files
 8. Runs post-update commands
+9. Cleans up temporary files
 
-If the update fails at any step, the system will attempt to restore from backup.
+If the update fails at any step, the system will attempt to restore from backup automatically. Detailed error information is provided both in the logs and to the user.
 
 ## Rollback Process
 
@@ -206,13 +245,16 @@ Laravel Updraft views use a layout file that can be configured in the `laravel-u
 
 ```php
 'layout' => 'layouts.app',
+'content' => 'content',
 ```
 
-Change this to use your own layout file. For further customization, publish the views:
+Change these to use your own layout file and content section. For further customization, publish the views:
 
 ```bash
 php artisan vendor:publish --tag=laravel-updraft-views
 ```
+
+The views use Bootstrap 5 and Font Awesome for styling and are fully responsive.
 
 ## Features
 
@@ -224,18 +266,57 @@ php artisan vendor:publish --tag=laravel-updraft-views
 - **Command Line Support**: Apply updates and rollbacks via Artisan commands for automated deployment
 - **Flexible Manifest System**: Detailed manifests for controlling update behavior
 - **Customizable UI**: Configure the layout and publish views to match your application's design
-- **Security First**: Package verification and authentication built-in
+- **Security First**: Authentication and authorization built-in
+- **Enhanced Error Handling**: Detailed error reporting to help diagnose issues
+- **Internationalization Support**: Built-in support for multiple languages
+- **Progress Tracking**: Visual progress indicators during the update process
 
 ## Security
 
+### Authentication and Authorization
+
 - All update operations require authentication and authorization
-- Update packages can be verified with a digital signature
-- Backups are created before any changes are applied
-- Safety backups are created before rollbacks
+- The web interface is protected by the middleware specified in the config file
+- By default, only users with the 'manage-updates' permission can access the web interface
+- Error logs include detailed information about failures for security auditing
+
+## Roadmap
+
+Here's our plan for future improvements to Laravel Updraft:
+
+### Short-term (Next Release)
+- **Database Rollback Support**: Add ability to roll back database changes during a failed update
+- **Improved File Diffing**: Show file differences before applying updates
+- **Update Channels**: Support for different update channels (stable, beta, nightly)
+- **Update Notifications**: Email notifications for successful/failed updates
+
+### Mid-term
+- **Update Package Builder Tool**: GUI for creating update packages
+- **Remote Update Repository**: Support for fetching updates from a remote repository
+- **Update Dependencies**: Allow updates to specify dependencies
+- **Staged Updates**: Apply updates in stages with validation between steps
+- **Update Testing Mode**: Test updates in a sandbox environment before applying
+
+### Long-term
+- **Real-time Progress Updates**: WebSocket support for real-time update progress
+- **Multi-server Deployment**: Coordinate updates across multiple servers
+- **Plugin System**: Allow extensions to customize the update process
+- **Update Scheduling**: Schedule updates for off-peak hours
+- **Automated Testing**: Test deployments automatically after updates
+- **Health Checks**: Pre and post-update system health checks
+- **Advanced Metrics**: Gather and analyze update performance and reliability metrics
 
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+Please make sure your code follows our coding standards and includes tests for new features.
 
 ## Credits
 
@@ -244,4 +325,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This package is open-sourced software licensed under the MIT license.
+This package is open-sourced software licensed under the MIT license. See the [LICENSE](LICENSE) file for more information.

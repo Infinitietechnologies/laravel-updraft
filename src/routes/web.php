@@ -17,4 +17,7 @@ Route::group(['prefix' => 'admin/updates', 'middleware' => config('laravel-updra
     Route::get('/rollback', [UpdateController::class, 'showRollbackOptions'])->name('laravel-updraft.rollback-options');
     Route::get('/rollback/{backupId}/confirm', [UpdateController::class, 'confirmRollback'])->name('laravel-updraft.confirm-rollback');
     Route::post('/rollback/{backupId}/process', [UpdateController::class, 'processRollback'])->name('laravel-updraft.process-rollback');
+    
+    // Language switcher
+    Route::get('/set-locale/{locale}', [UpdateController::class, 'setLocale'])->name('laravel-updraft.set-locale');
 });

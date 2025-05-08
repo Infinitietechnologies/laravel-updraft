@@ -5,6 +5,8 @@ namespace LaravelUpdraft;
 use Illuminate\Support\ServiceProvider;
 use LaravelUpdraft\Console\Commands\UpdateCommand;
 use LaravelUpdraft\Console\Commands\RollbackCommand;
+use LaravelUpdraft\Http\Middleware\LocaleMiddleware;
+use Illuminate\Routing\Router;
 
 class LaravelUpdraftServiceProvider extends ServiceProvider
 {
@@ -32,6 +34,15 @@ class LaravelUpdraftServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Register middleware
+        $router = $this->app->make(Router::class);
+        $router->aliasMiddleware('locale', LocaleMiddleware::class);
+        
+        // Update the middleware group to include our locale middleware
+        $updraftMiddleware = config('laravel-updraft.middleware', ['web', 'auth']);
+        $updraftMiddleware[] = 'locale';
+        config(['laravel-updraft.middleware' => $updraftMiddleware]);
+        
         // Publish configuration
         $this->publishes([
             __DIR__ . '/config/laravel-updraft.php' => config_path('laravel-updraft.php'),
@@ -46,6 +57,14 @@ class LaravelUpdraftServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__ . '/public/assets' => public_path('vendor/laravel-updraft/assets'),
         ], 'laravel-updraft-assets');
+        
+        // Load translations
+        $this->loadTranslationsFrom(__DIR__ . '/resources/lang', 'laravel-updraft');
+        
+        // Publish translations
+        $this->publishes([
+            __DIR__ . '/resources/lang' => resource_path('lang/vendor/laravel-updraft'),
+        ], 'laravel-updraft-translations');
         
         // Load migrations
         $this->loadMigrationsFrom(__DIR__ . '/database/migrations');

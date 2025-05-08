@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'Laravel') }} - Updraft</title>
+    <title>{{ config('app.name', 'Laravel') }} - {{ __('updraft.app_name') }}</title>
 
     <!-- Bootstrap 5.3 CSS -->
     <link href="{{ asset('vendor/laravel-updraft/assets/css/bootstrap.min.css') }}" rel="stylesheet">
@@ -39,6 +39,12 @@
         .filepond--credits {
             display: none;
         }
+
+        .language-selector .dropdown-item.active {
+            background-color: #f8f9fa;
+            color: #212529;
+            font-weight: bold;
+        }
     </style>
 
     @yield('styles')
@@ -49,11 +55,11 @@
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="{{ route('laravel-updraft.index') }}">
                 <i class="fas fa-cloud-download-alt text-primary me-2"></i>
-                <span>Laravel Updraft</span>
+                <span>{{ __('updraft.app_name') }}</span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                 data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
-                aria-label="Toggle navigation">
+                aria-label="{{ __('updraft.toggle_navigation') }}">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
@@ -61,22 +67,44 @@
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('laravel-updraft.index') ? 'active' : '' }}"
                             href="{{ route('laravel-updraft.index') }}">
-                            <i class="fas fa-upload me-1"></i> Upload Update
+                            <i class="fas fa-upload me-1"></i> {{ __('updraft.upload_update') }}
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('laravel-updraft.history') ? 'active' : '' }}"
                             href="{{ route('laravel-updraft.history') }}">
-                            <i class="fas fa-history me-1"></i> Update History
+                            <i class="fas fa-history me-1"></i> {{ __('updraft.update_history') }}
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('laravel-updraft.rollback-options') ? 'active' : '' }}"
                             href="{{ route('laravel-updraft.rollback-options') }}">
-                            <i class="fas fa-undo me-1"></i> Rollback
+                            <i class="fas fa-undo me-1"></i> {{ __('updraft.rollback') }}
                         </a>
                     </li>
                 </ul>
+                
+                <!-- Language Selector -->
+                <div class="language-selector dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-globe me-1"></i> 
+                        @if(app()->getLocale() == 'en')
+                            English
+                        @elseif(app()->getLocale() == 'es')
+                            Español
+                        @else
+                            {{ app()->getLocale() }}
+                        @endif
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+                        <li>
+                            <a class="dropdown-item {{ app()->getLocale() == 'en' ? 'active' : '' }}" href="{{ route('laravel-updraft.set-locale', ['locale' => 'en']) }}">English</a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item {{ app()->getLocale() == 'es' ? 'active' : '' }}" href="{{ route('laravel-updraft.set-locale', ['locale' => 'es']) }}">Español</a>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </div>
     </nav>
@@ -91,7 +119,7 @@
         <div class="container">
             <div class="row">
                 <div class="col-md-6">
-                    <p class="mb-0">&copy; {{ date('Y') }} Laravel Updraft</p>
+                    <p class="mb-0">&copy; {{ date('Y') }} {{ __('updraft.app_name') }}</p>
                 </div>
                 <div class="col-md-6 text-md-end">
                     <p class="mb-0">

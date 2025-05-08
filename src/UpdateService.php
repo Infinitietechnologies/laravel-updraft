@@ -20,30 +20,35 @@ class UpdateService
      * Process an uploaded update package
      * 
      * @param string $updateFile Path to the uploaded ZIP file
-     * @return bool
+     * @return bool|array Returns true on success, or error array on failure
      */
-    public function processUpdate(string $updateFile): bool
+    public function processUpdate(string $updateFile): bool|array
     {
+        $backupId = null;
+        $manifest = null;
+        $extractPath = null;
+        
         try {
             // Extract the update package
             $extractPath = $this->extractUpdatePackage($updateFile);
 
             // Validate the update package structure
             if (!$this->validatePackageStructure($extractPath)) {
-                throw new \Exception('Invalid update package structure');
+                throw new \Exception('Invalid update package structure. Package is missing required directories or files.', 1001);
             }
 
             // Read the main manifest
             $manifest = $this->readMainManifest($extractPath);
 
             // Check version compatibility
-            if (!$this->checkVersionCompatibility($manifest)) {
-                throw new \Exception('Incompatible update version');
+            $compatibilityCheck = $this->checkVersionCompatibility($manifest);
+            if ($compatibilityCheck !== true) {
+                throw new \Exception('Incompatible update version: ' . $compatibilityCheck, 1003);
             }
             
             // Check if this version is already applied
             if (UpdateHistory::hasVersion($manifest['version'])) {
-                throw new \Exception('This update version has already been applied');
+                throw new \Exception('This update version has already been applied: ' . $manifest['version'], 1004);
             }
 
             // Create backup before applying updates
@@ -64,22 +69,54 @@ class UpdateService
             // Log successful update in the database
             $this->logUpdateHistory($manifest, $backupId, true);
 
+            // Clean up the extracted files
+            if ($extractPath && is_dir($extractPath)) {
+                $this->cleanupExtractedFiles($extractPath);
+            }
+
             return true;
         } catch (\Exception $e) {
-            // Log the error
-            \Log::error('Update failed: ' . $e->getMessage());
+            // Log the error with detailed information
+            \Log::error('Update failed', [
+                'error' => $e->getMessage(),
+                'code' => $e->getCode(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+                'updateFile' => $updateFile,
+                'backupId' => $backupId ?? null
+            ]);
             
             // If we have manifest information, log the failed update
             if (isset($manifest)) {
-                $this->logUpdateHistory($manifest, $backupId ?? null, false, ['error' => $e->getMessage()]);
+                $this->logUpdateHistory($manifest, $backupId ?? null, false, [
+                    'error' => $e->getMessage(),
+                    'code' => $e->getCode(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                ]);
             }
 
             // Attempt to restore from backup if available
             if (isset($backupId) && $backupId) {
-                $this->restoreFromBackup($backupId);
+                try {
+                    $this->restoreFromBackup($backupId);
+                    \Log::info("System restored from backup: {$backupId}");
+                } catch (\Exception $restoreException) {
+                    \Log::error("Failed to restore from backup: {$restoreException->getMessage()}");
+                }
             }
 
-            return false;
+            // Clean up the extracted files if they exist
+            if ($extractPath && is_dir($extractPath)) {
+                $this->cleanupExtractedFiles($extractPath);
+            }
+
+            return [
+                'error' => $e->getMessage(),
+                'code' => $e->getCode(),
+                'backupRestored' => isset($backupId) && $backupId,
+            ];
         }
     }
     
@@ -175,25 +212,28 @@ class UpdateService
 
     /**
      * Check if the update is compatible with the current installation
+     * 
+     * @param array $manifest The update manifest
+     * @return bool|string Returns true if compatible, or error message if not
      */
-    protected function checkVersionCompatibility(array $manifest): bool
+    protected function checkVersionCompatibility(array $manifest): bool|string
     {
         // Get the current application version
         $currentVersion = config('app.version');
 
         // Check PHP version
         if (isset($manifest['requiredPhpVersion']) && !version_compare(PHP_VERSION, $manifest['requiredPhpVersion'], '>=')) {
-            return false;
+            return "PHP version {$manifest['requiredPhpVersion']} required, but current version is " . PHP_VERSION;
         }
 
         // Check Laravel version
         if (isset($manifest['requiredLaravelVersion']) && !version_compare(app()->version(), $manifest['requiredLaravelVersion'], '>=')) {
-            return false;
+            return "Laravel version {$manifest['requiredLaravelVersion']} required, but current version is " . app()->version();
         }
 
         // Check minimum required app version
         if (isset($manifest['minimumRequiredVersion']) && !version_compare($currentVersion, $manifest['minimumRequiredVersion'], '>=')) {
-            return false;
+            return "Application version {$manifest['minimumRequiredVersion']} required, but current version is {$currentVersion}";
         }
 
         return true;
@@ -569,5 +609,35 @@ class UpdateService
             'successful' => true,
             'backup_id' => $safetyBackupId,
         ]);
+    }
+    
+    /**
+     * Clean up extracted files after update
+     *
+     * @param string $extractPath Path to clean up
+     * @return void
+     */
+    protected function cleanupExtractedFiles(string $extractPath): void
+    {
+        if (!is_dir($extractPath)) {
+            return;
+        }
+        
+        // Use RecursiveDirectoryIterator to recursively delete all files and directories
+        $files = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($extractPath, \RecursiveDirectoryIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+        
+        foreach ($files as $fileInfo) {
+            if ($fileInfo->isDir()) {
+                rmdir($fileInfo->getRealPath());
+            } else {
+                unlink($fileInfo->getRealPath());
+            }
+        }
+        
+        // Remove the main directory
+        rmdir($extractPath);
     }
 }

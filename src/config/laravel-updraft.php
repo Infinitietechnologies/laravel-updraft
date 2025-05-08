@@ -71,24 +71,4 @@ return [
     */
     'layout' => 'laravel-updraft::layouts.app',
     'content'=> 'content',
-    
-    /*
-    |--------------------------------------------------------------------------
-    | Verification
-    |--------------------------------------------------------------------------
-    |
-    | Enable or disable verification of update packages.
-    |
-    */
-    'verify_updates' => true,
-    
-    /*
-    |--------------------------------------------------------------------------
-    | Update Public Key
-    |--------------------------------------------------------------------------
-    |
-    | The public key used to verify update packages.
-    |
-    */
-    'update_public_key' => env('UPDATE_PUBLIC_KEY'),
 ];

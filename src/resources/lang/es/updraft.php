@@ -1,0 +1,75 @@
+<?php
+
+return [
+    // General
+    'app_name' => 'Laravel Updraft',
+    'toggle_navigation' => 'Alternar navegación',
+    'upload_update' => 'Subir Actualización',
+    'rollback' => 'Reversión',
+    
+    // Update Form
+    'upload_update_package' => 'Subir Paquete de Actualización',
+    'select_update_package' => 'Por favor, seleccione el archivo del paquete de actualización (.zip).',
+    'file_requirements' => 'Solo se aceptan archivos .zip. Tamaño máximo del archivo: 50MB.',
+    'backup_confirmation' => 'Confirmo que he realizado una copia de seguridad de mi aplicación antes de aplicar esta actualización.',
+    'upload_and_apply' => 'Subir y Aplicar Actualización',
+    'update_instructions' => 'Instrucciones de Actualización',
+    'instructions' => [
+        'trusted_source' => 'Asegúrese de haber descargado el paquete de actualización de una fuente confiable.',
+        'backup' => 'Siempre haga una copia de seguridad de su aplicación y base de datos antes de aplicar cualquier actualización.',
+        'upload' => 'Suba el paquete de actualización utilizando el formulario de arriba.',
+        'automatic_process' => 'El sistema automáticamente:',
+        'extract' => 'Extraerá el paquete de actualización',
+        'validate' => 'Validará la estructura del paquete',
+        'backup_files' => 'Creará una copia de seguridad de los archivos afectados',
+        'apply_changes' => 'Aplicará los cambios en los archivos',
+        'run_migrations' => 'Ejecutará las migraciones incluidas',
+        'update_config' => 'Actualizará los archivos de configuración',
+        'run_commands' => 'Ejecutará comandos posteriores a la actualización',
+        'restore' => 'Si la actualización falla, el sistema intentará restaurar desde la copia de seguridad.',
+    ],
+    
+    // Update History
+    'update_history' => 'Historial de Actualizaciones',
+    'rollback_manager' => 'Gestor de Reversiones',
+    'details' => 'Detalles',
+    'roll_back' => 'Revertir',
+    'version' => 'Versión',
+    'name' => 'Nombre',
+    'applied_at' => 'Aplicado el',
+    'status' => 'Estado',
+    'applied_by' => 'Aplicado por',
+    'actions' => 'Acciones',
+    'action' => 'Acción',
+    'successful' => 'Exitoso',
+    'failed' => 'Fallido',
+    'system' => 'Sistema',
+    'description' => 'Descripción:',
+    'backup_id' => 'ID de Copia de Seguridad:',
+    'roll_back_before' => 'Revertir a Antes de Esta Actualización',
+    'metadata' => 'Metadatos:',
+    'no_updates' => 'No se han aplicado actualizaciones todavía.',
+    
+    // Rollback
+    'rollback_options' => 'Opciones de Reversión',
+    'confirm_rollback' => 'Confirmar Reversión',
+    'confirm_rollback_button' => 'Confirmar Reversión',
+    'back_to_rollback' => 'Volver a Opciones de Reversión',
+    'available_versions' => 'Versiones Disponibles para Reversión',
+    'rollback_description' => 'Seleccione una versión para revertir. Esto restaurará su aplicación al estado en que estaba antes de que se aplicara la actualización seleccionada.',
+    'no_updates_for_rollback' => 'No hay actualizaciones disponibles para revertir. Las actualizaciones deben aplicarse con éxito y tener una copia de seguridad disponible.',
+    'warning' => 'Advertencia',
+    'rollback_warning' => 'La reversión restaurará los archivos a su estado anterior, pero los cambios en la base de datos no pueden revertirse automáticamente. Asegúrese de tener una copia de seguridad de la base de datos antes de continuar.',
+    'rollback_warning_detailed' => 'Está a punto de revertir su aplicación a una versión anterior. Esta acción no se puede deshacer.',
+    'rollback_confirmation_message' => 'Está a punto de revertir a antes de que se aplicara la siguiente actualización:',
+    'backup_id_label' => 'ID de Copia de Seguridad',
+    'unknown' => 'Desconocido',
+    'important_notes' => 'Notas Importantes',
+    'restore_files' => 'Esto restaurará sus archivos a su estado anterior.',
+    'db_warning' => 'Los cambios en la base de datos no pueden revertirse automáticamente. Asegúrese de tener una copia de seguridad de la base de datos.',
+    'safety_backup' => 'Se creará una copia de seguridad de su estado actual antes de la reversión.',
+    'cancel' => 'Cancelar',
+
+    // Alert messages
+    'close' => 'Cerrar',
+];

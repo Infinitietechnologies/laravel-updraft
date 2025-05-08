@@ -5,10 +5,10 @@
         <div class="col-md-8">
             <div class="card shadow">
                 <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Confirm Rollback</h5>
+                    <h5 class="mb-0">{{ __('updraft.confirm_rollback') }}</h5>
                     <a href="{{ route('laravel-updraft.rollback-options') }}"
                         class="btn btn-sm btn-outline-secondary">
-                        <i class="fas fa-arrow-left me-1"></i> Back to Rollback Options
+                        <i class="fas fa-arrow-left me-1"></i> {{ __('updraft.back_to_rollback') }}
                     </a>
                 </div>
 
@@ -16,40 +16,39 @@
                     @if (session('error'))
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
                             {{ session('error') }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{{ __('updraft.close') }}"></button>
                         </div>
                     @endif
 
                     <div class="alert alert-warning">
                         <i class="fas fa-exclamation-triangle me-2"></i>
-                        <strong>Warning!</strong> You are about to roll back your application to a previous version.
-                        This action cannot be undone.
+                        <strong>{{ __('updraft.warning') }}!</strong> {{ __('updraft.rollback_warning_detailed') }}
                     </div>
 
-                    <h5 class="mb-3">You are about to roll back to before the following update was applied:</h5>
+                    <h5 class="mb-3">{{ __('updraft.rollback_confirmation_message') }}</h5>
 
                     <div class="table-responsive mb-4">
                         <table class="table table-bordered">
                             <tbody>
                                 <tr>
-                                    <th class="bg-light" style="width: 150px;">Version</th>
-                                    <td>{{ $update->version ?? ($backupInfo['version'] ?? 'Unknown') }}</td>
+                                    <th class="bg-light" style="width: 150px;">{{ __('updraft.version') }}</th>
+                                    <td>{{ $update->version ?? ($backupInfo['version'] ?? __('updraft.unknown')) }}</td>
                                 </tr>
                                 <tr>
-                                    <th class="bg-light">Name</th>
-                                    <td>{{ $update->name ?? 'Unknown' }}</td>
+                                    <th class="bg-light">{{ __('updraft.name') }}</th>
+                                    <td>{{ $update->name ?? __('updraft.unknown') }}</td>
                                 </tr>
                                 <tr>
-                                    <th class="bg-light">Applied At</th>
+                                    <th class="bg-light">{{ __('updraft.applied_at') }}</th>
                                     <td>{{ isset($update->applied_at) ? $update->applied_at->format('Y-m-d H:i:s') : date('Y-m-d H:i:s', $backupInfo['timestamp'] ?? 0) }}
                                     </td>
                                 </tr>
                                 <tr>
-                                    <th class="bg-light">Applied By</th>
-                                    <td>{{ $update->applied_by ?? 'System' }}</td>
+                                    <th class="bg-light">{{ __('updraft.applied_by') }}</th>
+                                    <td>{{ $update->applied_by ?? __('updraft.system') }}</td>
                                 </tr>
                                 <tr>
-                                    <th class="bg-light">Backup ID</th>
+                                    <th class="bg-light">{{ __('updraft.backup_id_label') }}</th>
                                     <td><code>{{ $backupId }}</code></td>
                                 </tr>
                             </tbody>
@@ -57,11 +56,11 @@
                     </div>
 
                     <div class="alert alert-danger mb-4">
-                        <p class="fw-bold mb-2"><i class="fas fa-exclamation-circle me-2"></i>Important Notes:</p>
+                        <p class="fw-bold mb-2"><i class="fas fa-exclamation-circle me-2"></i>{{ __('updraft.important_notes') }}:</p>
                         <ul class="mb-0">
-                            <li>This will restore your files to their previous state.</li>
-                            <li>Database changes cannot be automatically reverted. Make sure you have a database backup.</li>
-                            <li>A safety backup of your current state will be created before the rollback.</li>
+                            <li>{{ __('updraft.restore_files') }}</li>
+                            <li>{{ __('updraft.db_warning') }}</li>
+                            <li>{{ __('updraft.safety_backup') }}</li>
                         </ul>
                     </div>
 
@@ -70,10 +69,10 @@
                         @csrf
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-danger" id="confirmBtn">
-                                <i class="fas fa-undo me-1"></i> Confirm Rollback
+                                <i class="fas fa-undo me-1"></i> {{ __('updraft.confirm_rollback_button') }}
                             </button>
                             <a href="{{ route('laravel-updraft.rollback-options') }}" class="btn btn-secondary">
-                                <i class="fas fa-times me-1"></i> Cancel
+                                <i class="fas fa-times me-1"></i> {{ __('updraft.cancel') }}
                             </a>
                         </div>
                     </form>
