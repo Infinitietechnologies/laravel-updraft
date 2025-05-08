@@ -7,16 +7,28 @@ A Laravel package to easily manage application updates through versioned update 
 You can install the package via composer:
 
 ```bash
-composer require espionage/laravel-updraft
+composer require infinitietechnologies/laravel-updraft
 ```
 
 After installing the package, publish the configuration file using:
 
 ```bash
-php artisan vendor:publish --tag=project-updater-config
+php artisan vendor:publish --tag=laravel-updraft-config
 ```
 
-This will create a `project-updater.php` configuration file in your `config` directory.
+This will create a `laravel-updraft.php` configuration file in your `config` directory.
+
+You may also want to publish the migrations to customize them before running:
+
+```bash
+php artisan vendor:publish --tag=laravel-updraft-migrations
+```
+
+Or publish the views to customize the look and feel:
+
+```bash
+php artisan vendor:publish --tag=laravel-updraft-views
+```
 
 ## Configuration
 
@@ -27,6 +39,7 @@ The published configuration file contains the following settings:
 - `update_path`: The path where update packages will be stored
 - `backup_path`: The path where backups will be stored
 - `backup_retention`: The number of backups to keep (0 to keep all)
+- `layout`: The blade layout to use for the updraft views (defaults to 'layouts.app')
 - `verify_updates`: Enable or disable verification of update packages
 - `update_public_key`: The public key used to verify update packages
 
@@ -123,13 +136,43 @@ update-package.zip/
 #### Via Artisan Command
 
 ```bash
-php artisan project:update path/to/update-package.zip
+php artisan updraft:update path/to/update-package.zip
 ```
 
 or to skip confirmation:
 
 ```bash
-php artisan project:update path/to/update-package.zip --force
+php artisan updraft:update path/to/update-package.zip --force
+```
+
+### Rolling Back Updates
+
+If you need to revert to a previous version, Laravel Updraft provides rollback functionality.
+
+#### Via Web Interface
+
+1. Navigate to `/admin/updates/rollback` in your Laravel application
+2. Select the version you want to roll back to
+3. Confirm the rollback operation
+
+Alternatively, you can access the rollback options from the update history page.
+
+#### Via Artisan Command
+
+```bash
+php artisan updraft:rollback
+```
+
+This will list available backups and prompt you to select one. Or specify a backup ID directly:
+
+```bash
+php artisan updraft:rollback {backupId}
+```
+
+Use the `--force` option to skip confirmation:
+
+```bash
+php artisan updraft:rollback {backupId} --force
 ```
 
 ## Update Process
@@ -147,11 +190,57 @@ When an update is applied, the system performs the following steps:
 
 If the update fails at any step, the system will attempt to restore from backup.
 
+## Rollback Process
+
+When rolling back to a previous version, the system performs these steps:
+
+1. Creates a safety backup of the current state
+2. Restores files from the selected backup
+3. Updates the application history to record the rollback
+
+Note: Database changes cannot be automatically reverted during rollback. Make sure you have a database backup if needed.
+
+## Customizing the UI
+
+Laravel Updraft views use a layout file that can be configured in the `laravel-updraft.php` config file:
+
+```php
+'layout' => 'layouts.app',
+```
+
+Change this to use your own layout file. For further customization, publish the views:
+
+```bash
+php artisan vendor:publish --tag=laravel-updraft-views
+```
+
+## Features
+
+- **Simple Update Process**: Streamlined workflow for applying updates to your Laravel application
+- **Version Control**: Ensures that updates are only applied to compatible application versions
+- **Automatic Backups**: Creates backups before applying updates for safe rollbacks
+- **Rollback Capability**: Revert to previous versions when needed
+- **Web Interface**: User-friendly interface for uploading, applying, and rolling back updates
+- **Command Line Support**: Apply updates and rollbacks via Artisan commands for automated deployment
+- **Flexible Manifest System**: Detailed manifests for controlling update behavior
+- **Customizable UI**: Configure the layout and publish views to match your application's design
+- **Security First**: Package verification and authentication built-in
+
 ## Security
 
 - All update operations require authentication and authorization
 - Update packages can be verified with a digital signature
 - Backups are created before any changes are applied
+- Safety backups are created before rollbacks
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Credits
+
+- [Infinitie Technologies](https://github.com/Infinitietechnologies)
+- [All Contributors](../../contributors)
 
 ## License
 

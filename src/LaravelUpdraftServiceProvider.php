@@ -4,6 +4,7 @@ namespace LaravelUpdraft;
 
 use Illuminate\Support\ServiceProvider;
 use LaravelUpdraft\Console\Commands\UpdateCommand;
+use LaravelUpdraft\Console\Commands\RollbackCommand;
 
 class LaravelUpdraftServiceProvider extends ServiceProvider
 {
@@ -22,7 +23,7 @@ class LaravelUpdraftServiceProvider extends ServiceProvider
         
         // Merge configuration
         $this->mergeConfigFrom(
-            __DIR__ . '/../config/laravel-updraft.php', 'laravel-updraft'
+            __DIR__ . '/config/laravel-updraft.php', 'laravel-updraft'
         );
     }
     
@@ -33,26 +34,35 @@ class LaravelUpdraftServiceProvider extends ServiceProvider
     {
         // Publish configuration
         $this->publishes([
-            __DIR__ . '/../config/laravel-updraft.php' => config_path('laravel-updraft.php'),
+            __DIR__ . '/config/laravel-updraft.php' => config_path('laravel-updraft.php'),
         ], 'laravel-updraft-config');
+        
+        // Publish migrations
+        $this->publishes([
+            __DIR__ . '/database/migrations' => database_path('migrations'),
+        ], 'laravel-updraft-migrations');
+        
+        // Load migrations
+        $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
         
         // Load routes
         if (config('laravel-updraft.web_interface', true)) {
-            $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
+            $this->loadRoutesFrom(__DIR__ . '/routes/web.php');
         }
         
         // Load views
-        $this->loadViewsFrom(__DIR__ . '/../resources/views', 'laravel-updraft');
+        $this->loadViewsFrom(__DIR__ . '/resources/views', 'laravel-updraft');
         
         // Publish views
         $this->publishes([
-            __DIR__ . '/../resources/views' => resource_path('views/vendor/laravel-updraft'),
+            __DIR__ . '/resources/views' => resource_path('views/vendor/laravel-updraft'),
         ], 'laravel-updraft-views');
         
         // Register commands
         if ($this->app->runningInConsole()) {
             $this->commands([
                 UpdateCommand::class,
+                RollbackCommand::class,
             ]);
         }
     }
