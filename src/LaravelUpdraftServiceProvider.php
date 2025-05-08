@@ -42,6 +42,11 @@ class LaravelUpdraftServiceProvider extends ServiceProvider
             __DIR__ . '/database/migrations' => database_path('migrations'),
         ], 'laravel-updraft-migrations');
         
+        // Publish assets
+        $this->publishes([
+            __DIR__ . '/public/assets' => public_path('vendor/laravel-updraft/assets'),
+        ], 'laravel-updraft-assets');
+        
         // Load migrations
         $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
         

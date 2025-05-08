@@ -69,7 +69,8 @@ return [
     | Default is 'layouts.app' which is common in Laravel applications.
     |
     */
-    'layout' => 'layouts.app',
+    'layout' => 'laravel-updraft::layouts.app',
+    'content'=> 'content',
     
     /*
     |--------------------------------------------------------------------------
