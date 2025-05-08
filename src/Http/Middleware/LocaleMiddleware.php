@@ -4,6 +4,8 @@ namespace LaravelUpdraft\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Session;
 
 class LocaleMiddleware
 {
@@ -17,8 +19,8 @@ class LocaleMiddleware
     public function handle(Request $request, Closure $next)
     {
         // Check if locale is set in session
-        if (session()->has('locale')) {
-            app()->setLocale(session('locale'));
+        if (Session::has('locale')) {
+            App::setLocale(Session::get('locale'));
         }
         
         return $next($request);

@@ -315,30 +315,30 @@ class UpdateController extends Controller
     /**
      * Set the application locale and store it in the session
      */
-    public function setLocale($locale, Request $request)
+    public function setLocale($locale)
     {
         // Validate locale against available translations
         $availableLocales = ['en', 'es'];
-
+        
         if (!in_array($locale, $availableLocales)) {
-            $locale = 'en';  // Default to English if not valid
+            $locale = config('app.locale', 'en');  // Default to app locale or English
         }
-
+        
         // Store locale in session
         session(['locale' => $locale]);
         
-        // Set locale for this request too (immediate effect)
+        // Set locale for the current request
         app()->setLocale($locale);
         
-        // Get the URL to redirect back to
-        $redirectUrl = url()->previous();
+        // Redirect back to previous page or default to index
+        $previousUrl = url()->previous();
+        $currentLocaleUrl = url()->current();
         
-        // If there's no previous URL or it's the current URL (locale route), go to index
-        if (!$redirectUrl || $redirectUrl == url()->current()) {
+        // Don't redirect back to the language switch URL
+        if (empty($previousUrl) || $previousUrl === $currentLocaleUrl) {
             return redirect()->route('laravel-updraft.index');
         }
         
-        // Redirect back to previous page
-        return redirect($redirectUrl);
+        return redirect($previousUrl);
     }
 }
