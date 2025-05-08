@@ -1,0 +1,6 @@
+{
+  "migrations": [
+    "2025_05_08_000000_add_new_feature_table.php",
+    "2025_05_08_000001_modify_existing_table.php"
+  ]
+}
