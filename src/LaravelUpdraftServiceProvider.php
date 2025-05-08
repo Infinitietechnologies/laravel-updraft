@@ -38,9 +38,15 @@ class LaravelUpdraftServiceProvider extends ServiceProvider
         $router = $this->app->make(Router::class);
         $router->aliasMiddleware('locale', LocaleMiddleware::class);
         
-        // Update the middleware group to include our locale middleware
+        // Get the middleware group for the package
         $updraftMiddleware = config('laravel-updraft.middleware', ['web', 'auth']);
-        $updraftMiddleware[] = 'locale';
+        
+        // Make sure the locale middleware is included
+        if (!in_array('locale', $updraftMiddleware)) {
+            $updraftMiddleware[] = 'locale';
+        }
+        
+        // Update the config
         config(['laravel-updraft.middleware' => $updraftMiddleware]);
         
         // Publish configuration

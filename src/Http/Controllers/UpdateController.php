@@ -18,7 +18,7 @@ class UpdateController extends Controller
     {
         return view('laravel-updraft::update-form');
     }
-    
+
     /**
      * Display the update history
      */
@@ -27,48 +27,73 @@ class UpdateController extends Controller
         $updates = UpdateHistory::orderBy('applied_at', 'desc')->paginate(10);
         return view('laravel-updraft::update-history', compact('updates'));
     }
-    
+
     /**
      * Process the update package upload
      */
     public function upload(Request $request, UpdateService $updateService)
     {
-        // Validate the uploaded file
-        $request->validate([
-            'update_package' => 'required|file|mimes:zip|max:51200', // 50MB max (in kilobytes)
-            'confirm_backup' => 'required|in:1,true,on,yes'
-        ]);
-        
         try {
-            // Store the uploaded file
-            $path = $request->file('update_package')->store('updates');
-            $fullPath = Storage::path($path);
-            
-            // Log upload details
-            Log::info('Processing update package upload', [
-                'filename' => $request->file('update_package')->getClientOriginalName(),
-                'size' => $request->file('update_package')->getSize(),
-                'stored_path' => $fullPath
-            ]);
-            
+            // Check if this is a FilePond submission (contains file reference instead of actual file)
+            if ($request->has('update_package') && is_string($request->input('update_package')) && !$request->hasFile('update_package')) {
+                $filePath = $request->input('update_package');
+                
+                // Security check - only allow references to our temporary files
+                if (!Storage::exists($filePath) || strpos($filePath, 'tmp/updates/') !== 0) {
+                    throw new \Exception('Invalid file reference');
+                }
+                
+                // Get the full path to the file
+                $fullPath = Storage::path($filePath);
+                
+                Log::info('Processing update from FilePond reference', [
+                    'file_reference' => $filePath,
+                    'full_path' => $fullPath
+                ]);
+                
+                // Make sure we clean up the temp file later
+                $shouldCleanupTemp = true;
+            } else {
+                // Traditional file upload handling
+                $request->validate([
+                    'update_package' => 'required|file|mimes:zip|max:51200', // 50MB max
+                    'confirm_backup' => 'required|in:1,true,on,yes'
+                ]);
+                
+                // Store the uploaded file
+                $path = $request->file('update_package')->store('updates');
+                $fullPath = Storage::path($path);
+                $filePath = $path;  // Store for later cleanup
+                
+                Log::info('Processing update package upload', [
+                    'filename' => $request->file('update_package')->getClientOriginalName(),
+                    'size' => $request->file('update_package')->getSize(),
+                    'stored_path' => $fullPath
+                ]);
+                
+                $shouldCleanupTemp = true;
+            }
+
             // Process the update
             $result = $updateService->processUpdate($fullPath);
-            
+
             // Clean up the temporary file
-            Storage::delete($path);
-            
+            if (isset($shouldCleanupTemp) && $shouldCleanupTemp && isset($filePath)) {
+                Storage::delete($filePath);
+            }
+
             // Check if result is true (success) or an array (error details)
             if ($result === true) {
                 $message = 'Update successfully applied!';
-                
+
                 // Check if the request is AJAX or FilePond
                 if ($request->ajax() || $request->expectsJson()) {
                     return response()->json([
-                        'success' => true, 
+                        'success' => true,
                         'message' => $message
                     ]);
                 }
-                
+
                 return redirect()
                     ->route('laravel-updraft.index')
                     ->with('success', $message);
@@ -76,22 +101,22 @@ class UpdateController extends Controller
                 // Result is an array with error details
                 $error = is_array($result) ? $result['error'] : 'Update failed. Check the logs for more information.';
                 $backupRestored = is_array($result) && isset($result['backupRestored']) && $result['backupRestored'];
-                
+
                 $message = $error;
                 if ($backupRestored) {
                     $message .= ' Your system has been restored to the previous state.';
                 }
-                
+
                 // Check if the request is AJAX or FilePond
                 if ($request->ajax() || $request->expectsJson()) {
                     return response()->json([
-                        'success' => false, 
+                        'success' => false,
                         'message' => $message,
                         'error' => $error,
                         'backupRestored' => $backupRestored
                     ], 500);
                 }
-                
+
                 return redirect()
                     ->route('laravel-updraft.index')
                     ->with('error', $message);
@@ -102,23 +127,23 @@ class UpdateController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             $message = 'Update failed: ' . $e->getMessage();
-            
+
             // Check if the request is AJAX or FilePond
             if ($request->ajax() || $request->expectsJson()) {
                 return response()->json([
-                    'success' => false, 
+                    'success' => false,
                     'message' => $message
                 ], 500);
             }
-            
+
             return redirect()
                 ->route('laravel-updraft.index')
                 ->with('error', $message);
         }
     }
-    
+
     /**
      * Handle FilePond file upload process requests
      * This endpoint can be used with FilePond's server.process configuration
@@ -127,21 +152,32 @@ class UpdateController extends Controller
     {
         try {
             // FilePond sends the file as 'filepond' by default
-            if (!$request->hasFile('update_package') && $request->hasFile('filepond')) {
-                $file = $request->file('filepond');
-                
+            $fileField = 'filepond';
+            if (!$request->hasFile($fileField) && $request->hasFile('update_package')) {
+                $fileField = 'update_package';
+            }
+            
+            if ($request->hasFile($fileField)) {
+                $file = $request->file($fileField);
+
                 // Validate file
                 if (!$file->isValid()) {
                     throw new \Exception('Invalid file upload');
                 }
-                
+
                 // Store as a temporary file
                 $path = $file->store('tmp/updates');
-                
-                // Return the stored path as a reference
+
+                // Log the temporary file storage
+                Log::info('Temporary update file stored', [
+                    'original_name' => $file->getClientOriginalName(),
+                    'temp_path' => $path
+                ]);
+
+                // Return the stored path as a reference - FilePond expects this format
                 return response($path);
             }
-            
+
             return response('No valid file uploaded', 400);
         } catch (\Exception $e) {
             Log::error('FilePond process failed', [
@@ -150,7 +186,7 @@ class UpdateController extends Controller
             return response($e->getMessage(), 500);
         }
     }
-    
+
     /**
      * Handle FilePond revert action
      * Clean up temporary files when a user removes a file
@@ -160,12 +196,12 @@ class UpdateController extends Controller
         try {
             // The request body should contain the file reference (path)
             $fileRef = $request->getContent();
-            
+
             // Only delete if it's in the temporary uploads directory
             if (strpos($fileRef, 'tmp/updates/') === 0) {
                 Storage::delete($fileRef);
             }
-            
+
             return response('', 200);
         } catch (\Exception $e) {
             Log::error('FilePond revert failed', [
@@ -174,7 +210,7 @@ class UpdateController extends Controller
             return response('', 500);
         }
     }
-    
+
     /**
      * Display the available backups for rollback
      */
@@ -185,10 +221,10 @@ class UpdateController extends Controller
             ->whereNotNull('backup_id')
             ->orderBy('applied_at', 'desc')
             ->paginate(10);
-        
+
         return view('laravel-updraft::rollback-options', compact('updates'));
     }
-    
+
     /**
      * Show confirmation screen before rollback
      */
@@ -201,13 +237,13 @@ class UpdateController extends Controller
                     ->route('laravel-updraft.rollback-options')
                     ->with('error', 'Backup not found.');
             }
-            
+
             // Get the backup info
             $backupInfo = $updateService->getBackupInfo($backupId);
-            
+
             // Get the update record
             $update = UpdateHistory::where('backup_id', $backupId)->first();
-            
+
             return view('laravel-updraft::confirm-rollback', compact('backupId', 'backupInfo', 'update'));
         } catch (\Exception $e) {
             return redirect()
@@ -215,7 +251,7 @@ class UpdateController extends Controller
                 ->with('error', 'Error: ' . $e->getMessage());
         }
     }
-    
+
     /**
      * Process the rollback
      */
@@ -225,51 +261,51 @@ class UpdateController extends Controller
             // Check if backup exists
             if (!$updateService->backupExists($backupId)) {
                 $message = 'Backup not found.';
-                
+
                 // Check if the request is AJAX
                 if ($request->ajax() || $request->expectsJson()) {
                     return response()->json(['success' => false, 'message' => $message], 404);
                 }
-                
+
                 return redirect()
                     ->route('laravel-updraft.rollback-options')
                     ->with('error', $message);
             }
-            
+
             // Process the rollback
             $result = $updateService->rollbackToBackup($backupId);
-            
+
             if ($result) {
                 $message = 'Rollback successfully completed!';
-                
+
                 // Check if the request is AJAX
                 if ($request->ajax() || $request->expectsJson()) {
                     return response()->json(['success' => true, 'message' => $message]);
                 }
-                
+
                 return redirect()
                     ->route('laravel-updraft.history')
                     ->with('success', $message);
             } else {
                 $message = 'Rollback failed. Check the logs for more information.';
-                
+
                 // Check if the request is AJAX
                 if ($request->ajax() || $request->expectsJson()) {
                     return response()->json(['success' => false, 'message' => $message], 500);
                 }
-                
+
                 return redirect()
                     ->route('laravel-updraft.rollback-options')
                     ->with('error', $message);
             }
         } catch (\Exception $e) {
             $message = 'Rollback failed: ' . $e->getMessage();
-            
+
             // Check if the request is AJAX
             if ($request->ajax() || $request->expectsJson()) {
                 return response()->json(['success' => false, 'message' => $message], 500);
             }
-            
+
             return redirect()
                 ->route('laravel-updraft.rollback-options')
                 ->with('error', $message);
@@ -283,16 +319,26 @@ class UpdateController extends Controller
     {
         // Validate locale against available translations
         $availableLocales = ['en', 'es'];
-        
+
         if (!in_array($locale, $availableLocales)) {
             $locale = 'en';  // Default to English if not valid
         }
-        
+
         // Store locale in session
         session(['locale' => $locale]);
+        
+        // Set locale for this request too (immediate effect)
         app()->setLocale($locale);
         
-        // Redirect back to previous page or index
-        return redirect()->back() ?: redirect()->route('laravel-updraft.index');
+        // Get the URL to redirect back to
+        $redirectUrl = url()->previous();
+        
+        // If there's no previous URL or it's the current URL (locale route), go to index
+        if (!$redirectUrl || $redirectUrl == url()->current()) {
+            return redirect()->route('laravel-updraft.index');
+        }
+        
+        // Redirect back to previous page
+        return redirect($redirectUrl);
     }
 }
