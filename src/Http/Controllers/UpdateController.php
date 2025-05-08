@@ -110,11 +110,11 @@ class UpdateController extends Controller
                 // Check if the request is AJAX or FilePond
                 if ($request->ajax() || $request->expectsJson()) {
                     return response()->json([
-                        'success' => false,
+                        'success' => false, // Clearly indicate failure
                         'message' => $message,
                         'error' => $error,
                         'backupRestored' => $backupRestored
-                    ], 500);
+                    ], 422); // Use 422 Unprocessable Entity instead of 500 for validation failures
                 }
 
                 return redirect()
