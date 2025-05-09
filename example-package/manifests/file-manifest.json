@@ -4,10 +4,5 @@
     "resources/views/new-feature/index.blade.php"
   ],
   "modified": [],
-  "deleted": [],
-  "vendor": [
-    "laravel/framework/src/Illuminate/Foundation/helpers.php",
-    "laravel/framework/src/Illuminate/Support/helpers.php",
-    "symfony/console/Command/Command.php"
-  ]
+  "deleted": []
 }

@@ -60,42 +60,6 @@ class PackageValidator
             ]);
             return false;
         }
-        
-        // Validate vendor directory structure if it exists
-        if (file_exists($extractPath . '/files/vendor')) {
-            try {
-                $fileManifest = json_decode(file_get_contents($extractPath . '/manifests/file-manifest.json'), true);
-                
-                if (!isset($fileManifest['vendor']) || !is_array($fileManifest['vendor'])) {
-                    \Log::error('Vendor directory exists but no vendor files specified in file-manifest.json', [
-                        'extract_path' => $extractPath
-                    ]);
-                    return false;
-                }
-                
-                // Check if the vendor files specified in the manifest exist
-                $missingVendorFiles = [];
-                foreach ($fileManifest['vendor'] as $file) {
-                    if (!file_exists($extractPath . '/files/vendor/' . $file)) {
-                        $missingVendorFiles[] = $file;
-                    }
-                }
-                
-                if (!empty($missingVendorFiles)) {
-                    \Log::error('Missing vendor files specified in file-manifest.json', [
-                        'extract_path' => $extractPath,
-                        'missing_files' => $missingVendorFiles
-                    ]);
-                    return false;
-                }
-            } catch (\Exception $e) {
-                \Log::error('Failed to validate vendor directory structure', [
-                    'extract_path' => $extractPath,
-                    'error' => $e->getMessage()
-                ]);
-                return false;
-            }
-        }
 
         return true;
     }
