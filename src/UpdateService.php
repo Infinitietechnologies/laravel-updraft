@@ -28,7 +28,7 @@ class UpdateService
         $manifest = null;
         $extractPath = null;
         $errors = [];
-        
+
         try {
             // Extract the update package
             $extractPath = $this->extractUpdatePackage($updateFile);
@@ -46,11 +46,11 @@ class UpdateService
             if ($compatibilityCheck !== true) {
                 throw new \Exception('Incompatible update version: ' . $compatibilityCheck, 1003);
             }
-            
+
             // Check if this version is already applied
             if (UpdateHistory::hasVersion($manifest['version'])) {
                 $errorMessage = 'This update version has already been applied: ' . $manifest['version'];
-                
+
                 // Make sure we have a session and add error message to it
                 try {
                     if (!request()->hasSession()) {
@@ -59,7 +59,7 @@ class UpdateService
                             session()->start();
                         }
                     }
-                    
+
                     // Now try to set the session data
                     if (session()->isStarted()) {
                         session()->flash('error', $errorMessage);
@@ -72,7 +72,7 @@ class UpdateService
                         'updateVersion' => $manifest['version']
                     ]);
                 }
-                
+
                 throw new \Exception($errorMessage, 1004);
             }
 
@@ -82,13 +82,13 @@ class UpdateService
             try {
                 // Process file changes
                 $this->processFileChanges($extractPath);
-                
+
                 // Process migrations
                 $this->processMigrations($extractPath);
-                
+
                 // Process config updates
                 $this->processConfigUpdates($extractPath);
-                
+
                 // Run post-update commands
                 $this->runPostUpdateCommands($extractPath);
             } catch (\Exception $e) {
@@ -99,7 +99,7 @@ class UpdateService
                     'file' => $e->getFile(),
                     'line' => $e->getLine()
                 ]);
-                
+
                 // Try to restore from backup
                 if ($backupId) {
                     try {
@@ -109,11 +109,11 @@ class UpdateService
                         \Log::error("Failed to restore from backup: {$restoreException->getMessage()}");
                     }
                 }
-                
+
                 // Rethrow the original exception
                 throw $e;
             }
-            
+
             // Log successful update in the database
             $this->logUpdateHistory($manifest, $backupId, true);
 
@@ -134,7 +134,7 @@ class UpdateService
                 'updateFile' => $updateFile,
                 'backupId' => $backupId ?? null
             ]);
-            
+
             // If we have manifest information, log the failed update
             if (isset($manifest)) {
                 $this->logUpdateHistory($manifest, $backupId ?? null, false, [
@@ -177,7 +177,7 @@ class UpdateService
             ];
         }
     }
-    
+
     /**
      * Log update information to the history table
      */
@@ -189,14 +189,14 @@ class UpdateService
             'requiredLaravelVersion' => $manifest['requiredLaravelVersion'] ?? null,
             'minimumRequiredVersion' => $manifest['minimumRequiredVersion'] ?? null,
         ], $additionalMetadata);
-        
+
         // Determine the user who applied the update
         $appliedBy = null;
         if (Auth::check()) {
             $user = Auth::user();
             $appliedBy = $user->email ?? ($user->name ?? $user->id);
         }
-        
+
         // Create update history record
         UpdateHistory::create([
             'version' => $manifest['version'],
@@ -222,7 +222,7 @@ class UpdateService
 
         // Create a unique temp directory
         $tempPath = $this->updatePath . '/' . uniqid('update_');
-        
+
         // Ensure the parent directory exists
         $parentDir = dirname($this->updatePath);
         if (!is_dir($parentDir)) {
@@ -247,17 +247,17 @@ class UpdateService
         // Extract ZIP file
         $zip = new \ZipArchive;
         $result = $zip->open($updateFile);
-        
+
         if ($result === true) {
             $zip->extractTo($tempPath);
             $zip->close();
-            
+
             // Log successful extraction
             \Log::info("Successfully extracted update package", [
                 'path' => $tempPath,
                 'files_count' => count(glob($tempPath . '/*'))
             ]);
-            
+
             return $tempPath;
         } else {
             // Return a human-readable error message based on ZipArchive error codes
@@ -266,11 +266,11 @@ class UpdateService
                 'error_code' => $result,
                 'error_message' => $errorMessage
             ]);
-            
+
             throw new \Exception("Could not open the update package: {$errorMessage}");
         }
     }
-    
+
     /**
      * Get a human-readable error message for ZipArchive error codes
      */
@@ -301,7 +301,7 @@ class UpdateService
             \ZipArchive::ER_REMOVE => 'Cannot remove file',
             \ZipArchive::ER_DELETED => 'Entry has been deleted',
         ];
-        
+
         return $errors[$code] ?? "Unknown error code: {$code}";
     }
 
@@ -322,7 +322,7 @@ class UpdateService
                 $missingPaths[] = $path;
             }
         }
-        
+
         if (!empty($missingPaths)) {
             \Log::error('Invalid update package structure', [
                 'extract_path' => $extractPath,
@@ -331,17 +331,17 @@ class UpdateService
             ]);
             return false;
         }
-        
+
         // Check if file-manifest.json exists as it's required for processing
         if (!file_exists($extractPath . '/manifests/file-manifest.json')) {
             \Log::error('Missing file-manifest.json in update package', [
                 'extract_path' => $extractPath,
-                'manifests_dir_contents' => file_exists($extractPath . '/manifests') ? 
+                'manifests_dir_contents' => file_exists($extractPath . '/manifests') ?
                     glob($extractPath . '/manifests/*') : 'manifests directory not found'
             ]);
             return false;
         }
-        
+
         // Validate that the update-manifest.json is valid
         try {
             $manifest = json_decode(file_get_contents($extractPath . '/update-manifest.json'), true);
@@ -358,7 +358,7 @@ class UpdateService
             ]);
             return false;
         }
-        
+
         return true;
     }
 
@@ -418,10 +418,10 @@ class UpdateService
     {
         $backupId = date('YmdHis') . '_' . uniqid();
         $backupPath = $this->backupPath . '/' . $backupId;
-        
+
         // Ensure paths are normalized to prevent duplicate base path issues
         $backupPath = $this->normalizePath($backupPath);
-        
+
         // Log backup path for debugging
         \Log::info("Creating backup", [
             'backupId' => $backupId,
@@ -440,7 +440,7 @@ class UpdateService
         foreach ($fileManifest['modified'] as $file) {
             $sourcePath = base_path($file);
             $destPath = $backupPath . '/' . $file;
-            
+
             // Normalize destination path
             $destPath = $this->normalizePath($destPath);
 
@@ -460,7 +460,7 @@ class UpdateService
         foreach ($fileManifest['deleted'] as $file) {
             $sourcePath = base_path($file);
             $destPath = $backupPath . '/' . $file;
-            
+
             // Normalize destination path
             $destPath = $this->normalizePath($destPath);
 
@@ -560,12 +560,12 @@ class UpdateService
 
         // If any files were not found, throw an exception to stop the update process
         if (!empty($filesNotFound)) {
-            $message = count($filesNotFound) === 1 
-                ? "Source file not found: {$filesNotFound[0]}" 
-                : count($filesNotFound) . " source files not found: " . implode(", ", array_map(function($path) {
+            $message = count($filesNotFound) === 1
+                ? "Source file not found: {$filesNotFound[0]}"
+                : count($filesNotFound) . " source files not found: " . implode(", ", array_map(function ($path) {
                     return basename($path);
                 }, $filesNotFound));
-            
+
             throw new \Exception($message);
         }
     }
@@ -603,7 +603,7 @@ class UpdateService
             foreach ($manifest['migrations'] as $migration) {
                 $sourcePath = $extractPath . '/migrations/' . $migration;
                 $destPath = database_path('migrations/' . $migration);
-                
+
                 // Create directory structure if needed
                 $destDir = dirname($destPath);
                 if (!is_dir($destDir)) {
@@ -624,7 +624,7 @@ class UpdateService
                     'file' => $e->getFile(),
                     'line' => $e->getLine()
                 ]);
-                
+
                 throw new \Exception("Failed to run migrations: " . $e->getMessage(), 0, $e);
             }
         }
@@ -678,7 +678,7 @@ class UpdateService
                         'file' => $e->getFile(),
                         'line' => $e->getLine()
                     ]);
-                    
+
                     // Don't throw the exception, just log it and continue
                     // This allows the update to proceed even if a command fails
                 }
@@ -698,24 +698,24 @@ class UpdateService
         }
 
         \Log::info("Starting restore from backup", ['backupId' => $backupId, 'backupPath' => $backupPath]);
-        
+
         // Recursively restore all files from the backup
         $iterator = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($backupPath, \RecursiveDirectoryIterator::SKIP_DOTS),
             \RecursiveIteratorIterator::SELF_FIRST
         );
-        
+
         foreach ($iterator as $item) {
             if ($item->isFile()) {
                 $relativePath = str_replace($backupPath . '/', '', $item->getPathname());
-                
+
                 // Skip backup metadata
                 if ($relativePath === 'backup-info.json') {
                     continue;
                 }
-                
+
                 $destPath = base_path($relativePath);
-                
+
                 // Create directory structure if needed
                 $destDir = dirname($destPath);
                 if (!is_dir($destDir)) {
@@ -724,7 +724,7 @@ class UpdateService
                         if (!mkdir($destDir, 0755, true) && !is_dir($destDir)) {
                             throw new \Exception("Failed to create directory: {$destDir}");
                         }
-                        
+
                         \Log::info("Created directory", ['path' => $destDir]);
                     } catch (\Exception $e) {
                         \Log::error("Error creating directory", [
@@ -736,7 +736,7 @@ class UpdateService
                         throw new \Exception("Failed to create directory {$destDir}: " . $e->getMessage());
                     }
                 }
-                
+
                 try {
                     if (!copy($item->getPathname(), $destPath)) {
                         throw new \Exception("Failed to copy file from {$item->getPathname()} to {$destPath}");
@@ -751,7 +751,7 @@ class UpdateService
                 }
             }
         }
-        
+
         \Log::info("Finished restoring from backup", ['backupId' => $backupId]);
     }
 
@@ -771,11 +771,11 @@ class UpdateService
     {
         $backupPath = $this->backupPath . '/' . $backupId;
         $infoPath = $backupPath . '/backup-info.json';
-        
+
         if (!file_exists($infoPath)) {
             throw new \Exception('Backup information not found');
         }
-        
+
         return json_decode(file_get_contents($infoPath), true) ?: [];
     }
 
@@ -786,48 +786,48 @@ class UpdateService
     {
         try {
             $backupPath = $this->backupPath . '/' . $backupId;
-            
+
             if (!is_dir($backupPath)) {
                 throw new \Exception('Backup not found');
             }
-            
+
             // Create a safety backup of current state first
             $safetyBackupId = 'safety_' . date('YmdHis') . '_' . uniqid();
             $currentVersion = config('app.version');
             $backupInfo = $this->getBackupInfo($backupId);
-            
+
             // Create a full backup of the current application state
             // (simplified for brevity - in a real implementation this would be more comprehensive)
             $this->createSafetyBackup($safetyBackupId, $currentVersion, $backupInfo['version'] ?? 'unknown');
-            
+
             // Restore files from backup
             $this->restoreFilesFromBackup($backupId);
-            
+
             // Log the rollback in history
             $this->logRollbackHistory($backupId, $backupInfo, $safetyBackupId);
-            
+
             return true;
         } catch (\Exception $e) {
             \Log::error('Rollback failed: ' . $e->getMessage());
             return false;
         }
     }
-    
+
     /**
      * Create a safety backup before rollback
      */
     protected function createSafetyBackup(string $backupId, string $currentVersion, string $targetVersion): void
     {
         $backupPath = $this->backupPath . '/' . $backupId;
-        
+
         // Create backup directory
         if (!is_dir($backupPath)) {
             mkdir($backupPath, 0755, true);
         }
-        
+
         // In a production implementation, this would make a comprehensive backup
         // of files that might be affected by the rollback
-        
+
         // Save backup metadata
         file_put_contents(
             $backupPath . '/backup-info.json',
@@ -839,43 +839,43 @@ class UpdateService
             ])
         );
     }
-    
+
     /**
      * Restore files from a backup
      */
     protected function restoreFilesFromBackup(string $backupId): void
     {
         $backupPath = $this->backupPath . '/' . $backupId;
-        
+
         // Ensure paths are normalized
         $backupPath = $this->normalizePath($backupPath);
-        
+
         if (!is_dir($backupPath)) {
             throw new \Exception('Backup not found');
         }
-        
+
         \Log::info("Starting restore from backup", ['backupId' => $backupId, 'backupPath' => $backupPath]);
-        
+
         // Recursively restore all files from the backup
         $iterator = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($backupPath, \RecursiveDirectoryIterator::SKIP_DOTS),
             \RecursiveIteratorIterator::SELF_FIRST
         );
-        
+
         foreach ($iterator as $item) {
             if ($item->isFile()) {
                 $relativePath = str_replace($backupPath . '/', '', $item->getPathname());
-                
+
                 // Skip backup metadata
                 if ($relativePath === 'backup-info.json') {
                     continue;
                 }
-                
+
                 $destPath = base_path($relativePath);
-                
+
                 // Normalize the destination path to prevent duplicate path issues
                 $destPath = $this->normalizePath($destPath);
-                
+
                 // Create directory structure if needed
                 $destDir = dirname($destPath);
                 if (!is_dir($destDir)) {
@@ -884,7 +884,7 @@ class UpdateService
                         if (!mkdir($destDir, 0755, true) && !is_dir($destDir)) {
                             throw new \Exception("Failed to create directory: {$destDir}");
                         }
-                        
+
                         \Log::info("Created directory", ['path' => $destDir]);
                     } catch (\Exception $e) {
                         \Log::error("Error creating directory", [
@@ -896,7 +896,7 @@ class UpdateService
                         throw new \Exception("Failed to create directory {$destDir}: " . $e->getMessage());
                     }
                 }
-                
+
                 try {
                     if (!copy($item->getPathname(), $destPath)) {
                         throw new \Exception("Failed to copy file from {$item->getPathname()} to {$destPath}");
@@ -911,10 +911,10 @@ class UpdateService
                 }
             }
         }
-        
+
         \Log::info("Finished restoring from backup", ['backupId' => $backupId]);
     }
-    
+
     /**
      * Log rollback in history
      */
@@ -926,7 +926,7 @@ class UpdateService
             $user = \Auth::user();
             $appliedBy = $user->email ?? ($user->name ?? $user->id);
         }
-        
+
         // Create update history record for the rollback
         UpdateHistory::create([
             'version' => $backupInfo['version'] ?? 'Unknown',
@@ -944,7 +944,7 @@ class UpdateService
             'backup_id' => $safetyBackupId,
         ]);
     }
-    
+
     /**
      * Clean up extracted files after update
      *
@@ -956,13 +956,13 @@ class UpdateService
         if (!is_dir($extractPath)) {
             return;
         }
-        
+
         // Use RecursiveDirectoryIterator to recursively delete all files and directories
         $files = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($extractPath, \RecursiveDirectoryIterator::SKIP_DOTS),
             \RecursiveIteratorIterator::CHILD_FIRST
         );
-        
+
         foreach ($files as $fileInfo) {
             if ($fileInfo->isDir()) {
                 rmdir($fileInfo->getRealPath());
@@ -970,7 +970,7 @@ class UpdateService
                 unlink($fileInfo->getRealPath());
             }
         }
-        
+
         // Remove the main directory
         rmdir($extractPath);
     }
@@ -985,25 +985,25 @@ class UpdateService
     {
         // Convert all slashes to the same format
         $path = str_replace('\\', '/', $path);
-        
+
         // Fix potential duplicate paths issue (e.g. "D:/projects/app/D:/projects/app/storage")
         $basePath = str_replace('\\', '/', base_path());
         if (strpos($path, $basePath . '/' . $basePath) === 0) {
             $path = preg_replace('~^' . preg_quote($basePath . '/' . $basePath, '~') . '~', $basePath, $path);
         }
-        
+
         // Also check for storage path duplications
         $storagePath = str_replace('\\', '/', storage_path());
         if (strpos($path, $storagePath . '/' . $storagePath) === 0) {
             $path = preg_replace('~^' . preg_quote($storagePath . '/' . $storagePath, '~') . '~', $storagePath, $path);
         }
-        
+
         // Log the normalized path to help diagnose issues
         \Log::debug("Path normalized", [
             'original' => $path,
             'normalized' => $path
         ]);
-        
+
         return $path;
     }
 }
