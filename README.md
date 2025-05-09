@@ -1,6 +1,6 @@
 # Laravel Updraft
 
-A Laravel package to easily manage application updates through versioned update packages. Laravel Updraft provides a secure, reliable way to update your Laravel applications with minimal downtime and built-in rollback capabilities.
+A Laravel package to easily manage application updates through versioned update packages. Laravel Updraft provides a secure, reliable way to update your Laravel applications with minimal downtime.
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/infinitietechnologies/laravel-updraft.svg)](https://packagist.org/packages/infinitietechnologies/laravel-updraft)
 [![License](https://img.shields.io/github/license/infinitietechnologies/laravel-updraft)](https://github.com/infinitietechnologies/laravel-updraft/blob/master/LICENSE)
@@ -13,9 +13,7 @@ A Laravel package to easily manage application updates through versioned update 
 - [Usage](#usage)
   - [Creating Update Packages](#creating-update-packages)
   - [Applying Updates](#applying-updates)
-  - [Rolling Back Updates](#rolling-back-updates)
 - [Update Process](#update-process)
-- [Rollback Process](#rollback-process)
 - [Customizing the UI](#customizing-the-ui)
 - [Features](#features)
 - [Security](#security)
@@ -189,36 +187,6 @@ php artisan updraft:update path/to/update-package.zip --force
 
 The command-line interface is useful for automated deployments or when you prefer working in the terminal.
 
-### Rolling Back Updates
-
-If you need to revert to a previous version, Laravel Updraft provides rollback functionality.
-
-#### Via Web Interface
-
-1. Navigate to `/admin/updates/rollback` in your Laravel application
-2. Select the version you want to roll back to
-3. Confirm the rollback operation
-
-Alternatively, you can access the rollback options from the update history page.
-
-#### Via Artisan Command
-
-```bash
-php artisan updraft:rollback
-```
-
-This will list available backups and prompt you to select one. Or specify a backup ID directly:
-
-```bash
-php artisan updraft:rollback {backupId}
-```
-
-Use the `--force` option to skip confirmation:
-
-```bash
-php artisan updraft:rollback {backupId} --force
-```
-
 ## Update Process
 
 When an update is applied, the system performs the following steps:
@@ -233,17 +201,7 @@ When an update is applied, the system performs the following steps:
 8. Runs post-update commands
 9. Cleans up temporary files
 
-If the update fails at any step, the system will attempt to restore from backup automatically. Detailed error information is provided both in the logs and to the user.
-
-## Rollback Process
-
-When rolling back to a previous version, the system performs these steps:
-
-1. Creates a safety backup of the current state
-2. Restores files from the selected backup
-3. Updates the application history to record the rollback
-
-Note: Database changes cannot be automatically reverted during rollback. Make sure you have a database backup if needed.
+Detailed error information is provided both in the logs and to the user if any step fails.
 
 ## Customizing the UI
 
@@ -266,16 +224,20 @@ The views use Bootstrap 5 and Font Awesome for styling and are fully responsive.
 
 - **Simple Update Process**: Streamlined workflow for applying updates to your Laravel application
 - **Version Control**: Ensures that updates are only applied to compatible application versions
-- **Automatic Backups**: Creates backups before applying updates for safe rollbacks
-- **Rollback Capability**: Revert to previous versions when needed
-- **Web Interface**: User-friendly interface for uploading, applying, and rolling back updates
-- **Command Line Support**: Apply updates and rollbacks via Artisan commands for automated deployment
+- **Automatic Backups**: Creates backups before applying updates for safety
+- **Web Interface**: User-friendly interface for uploading and applying updates
+- **Command Line Support**: Apply updates via Artisan commands for automated deployment
 - **Flexible Manifest System**: Detailed manifests for controlling update behavior
 - **Customizable UI**: Configure the layout and publish views to match your application's design
 - **Security First**: Authentication and authorization built-in
 - **Enhanced Error Handling**: Detailed error reporting to help diagnose issues
 - **Internationalization Support**: Built-in support for multiple languages
 - **Progress Tracking**: Visual progress indicators during the update process
+- **Automatic File Management**: Handles adding, modifying, and removing files as needed
+- **Database Migration Support**: Automatically runs migrations included in update packages
+- **Configuration Updates**: Updates configuration files with new settings
+- **Post-Update Commands**: Executes specified commands after applying updates
+- **Update History**: Keeps a detailed history of all applied updates
 
 ## Security
 
@@ -285,16 +247,18 @@ The views use Bootstrap 5 and Font Awesome for styling and are fully responsive.
 - The web interface is protected by the middleware specified in the config file
 - By default, only users with the 'manage-updates' permission can access the web interface
 - Error logs include detailed information about failures for security auditing
+- File integrity checks ensure updates haven't been tampered with
 
 ## Roadmap
 
 Here's our plan for future improvements to Laravel Updraft:
 
 ### Short-term (Next Release)
-- **Database Rollback Support**: Add ability to roll back database changes during a failed update
 - **Improved File Diffing**: Show file differences before applying updates
 - **Update Channels**: Support for different update channels (stable, beta, nightly)
 - **Update Notifications**: Email notifications for successful/failed updates
+- **Enhanced Package Validation**: More robust validation of update packages
+- **Signature Verification**: Cryptographic validation of update package signatures for security
 
 ### Mid-term
 - **Update Package Builder Tool**: GUI for creating update packages

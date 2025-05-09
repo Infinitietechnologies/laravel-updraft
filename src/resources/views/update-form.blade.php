@@ -15,14 +15,14 @@
                 </div>
 
                 <div class="card-body" id="updraftCardBody">
-                    @if (session('success') && !session('error'))
+                    @if (session('success'))
                         <div class="alert alert-success alert-dismissible fade show" role="alert">
                             {{ session('success') }}
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{{ __('updraft.close') }}"></button>
                         </div>
                     @endif
 
-                    @if (session('error'))
+                    @if (session('error') && session('update_success') === false)
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
                             {{ session('error') }}
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{{ __('updraft.close') }}"></button>

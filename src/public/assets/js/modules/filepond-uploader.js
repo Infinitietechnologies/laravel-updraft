@@ -181,9 +181,9 @@ const FilePondUploader = (function() {
             } catch (e) {
                 // If response is not JSON, check for redirect or HTML response with success/error messages
                 if (xhr.status >= 200 && xhr.status < 300) {
-                    // Try to determine success/failure from HTML response
+                    // Fix: Improved success detection logic
                     const isSuccess = xhr.responseText.includes('alert-success') && 
-                                    !xhr.responseText.includes('update_success') === false;
+                                    !xhr.responseText.includes('alert-danger');
                     
                     response = { 
                         success: isSuccess,
@@ -199,8 +199,11 @@ const FilePondUploader = (function() {
             
             // Always check for explicit success flag
             if (response && response.success === true) {
-                // Show success message
+                // Clear any existing alerts first
                 const cardBody = document.getElementById(settings.cardBodyId);
+                clearAllAlerts(cardBody);
+                
+                // Show success message
                 const successAlert = createAlert('success', response.message || 'Update successfully applied!');
                 
                 // Insert at the top of the card body
@@ -230,6 +233,15 @@ const FilePondUploader = (function() {
         
         // Send the request
         xhr.send(formData);
+    }
+    
+    /**
+     * Clear all alert messages in a container
+     * @param {HTMLElement} container The container element
+     */
+    function clearAllAlerts(container) {
+        const existingAlerts = container.querySelectorAll('.alert');
+        existingAlerts.forEach(alert => alert.remove());
     }
     
     /**
