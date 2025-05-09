@@ -3,7 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use LaravelUpdraft\Http\Controllers\UpdateController;
 
-Route::group(['prefix' => 'admin/updates', 'middleware' => config('laravel-updraft.middleware', ['web', 'auth'])], function () {
+// Apply the locale middleware to all routes
+Route::group(['prefix' => 'admin/updates', 'middleware' => array_merge(config('laravel-updraft.middleware', ['web', 'auth']), ['updraft.locale'])], function () {
     // Main routes
     Route::get('/', [UpdateController::class, 'index'])->name('laravel-updraft.index');
     Route::post('/upload', [UpdateController::class, 'upload'])->name('laravel-updraft.upload');

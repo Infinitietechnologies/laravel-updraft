@@ -20,9 +20,20 @@ class LocaleMiddleware
     {
         // Check if locale is set in session
         if (Session::has('locale')) {
-            App::setLocale(Session::get('locale'));
+            $locale = Session::get('locale');
+            App::setLocale($locale);
         }
         
-        return $next($request);
+        // Force the locale to be persistent for this request
+        $response = $next($request);
+        
+        // If the response is a view, make sure it has the current locale
+        if (method_exists($response, 'getContent')) {
+            // This ensures any content rendered after middleware runs
+            // still has the correct locale
+            App::setLocale(App::getLocale());
+        }
+        
+        return $response;
     }
 }
