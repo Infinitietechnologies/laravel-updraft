@@ -3,6 +3,7 @@
 namespace LaravelUpdraft;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Pagination\Paginator;
 use LaravelUpdraft\Console\Commands\UpdateCommand;
 use LaravelUpdraft\Console\Commands\RollbackCommand;
 use LaravelUpdraft\Http\Middleware\LocaleMiddleware;
@@ -34,6 +35,9 @@ class LaravelUpdraftServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Configure pagination to use Bootstrap
+        Paginator::useBootstrap();
+        
         // Register middleware
         $router = $this->app->make(Router::class);
         $router->aliasMiddleware('updraft.locale', LocaleMiddleware::class);
