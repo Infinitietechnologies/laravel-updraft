@@ -12,7 +12,7 @@ class UpdateService
 
     public function __construct($updatePath = null, $backupPath = null)
     {
-        $this->updatePath = $updatePath ?: storage_path('app/updates');
+        $this->updatePath = $updatePath ?: storage_path('app/private/temp/updates');
         $this->backupPath = $backupPath ?: storage_path('app/backups');
     }
 
@@ -27,6 +27,7 @@ class UpdateService
         $backupId = null;
         $manifest = null;
         $extractPath = null;
+        $errors = [];
         
         try {
             // Extract the update package
@@ -54,17 +55,40 @@ class UpdateService
             // Create backup before applying updates
             $backupId = $this->createBackup($extractPath);
 
-            // Process file changes
-            $this->processFileChanges($extractPath);
-
-            // Process migrations
-            $this->processMigrations($extractPath);
-
-            // Process config updates
-            $this->processConfigUpdates($extractPath);
-
-            // Run post-update commands
-            $this->runPostUpdateCommands($extractPath);
+            try {
+                // Process file changes
+                $this->processFileChanges($extractPath);
+                
+                // Process migrations
+                $this->processMigrations($extractPath);
+                
+                // Process config updates
+                $this->processConfigUpdates($extractPath);
+                
+                // Run post-update commands
+                $this->runPostUpdateCommands($extractPath);
+            } catch (\Exception $e) {
+                // Capture any errors during the update process
+                \Log::error('Error during update process steps', [
+                    'error' => $e->getMessage(),
+                    'code' => $e->getCode(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                ]);
+                
+                // Try to restore from backup
+                if ($backupId) {
+                    try {
+                        $this->restoreFromBackup($backupId);
+                        \Log::info("System restored from backup: {$backupId}");
+                    } catch (\Exception $restoreException) {
+                        \Log::error("Failed to restore from backup: {$restoreException->getMessage()}");
+                    }
+                }
+                
+                // Rethrow the original exception
+                throw $e;
+            }
             
             // Log successful update in the database
             $this->logUpdateHistory($manifest, $backupId, true);
@@ -104,6 +128,7 @@ class UpdateService
                     \Log::info("System restored from backup: {$backupId}");
                 } catch (\Exception $restoreException) {
                     \Log::error("Failed to restore from backup: {$restoreException->getMessage()}");
+                    $errors[] = "Failed to restore from backup: " . $restoreException->getMessage();
                 }
             }
 
@@ -112,10 +137,19 @@ class UpdateService
                 $this->cleanupExtractedFiles($extractPath);
             }
 
+            // Add all collected errors
+            if (!empty($errors)) {
+                $errorMessage = $e->getMessage() . "\nAdditional errors: " . implode(", ", $errors);
+            } else {
+                $errorMessage = $e->getMessage();
+            }
+
             return [
-                'error' => $e->getMessage(),
+                'success' => false,
+                'error' => $errorMessage,
                 'code' => $e->getCode(),
-                'backupRestored' => isset($backupId) && $backupId,
+                'backupRestored' => isset($backupId) && $backupId && empty($errors),
+                'message' => $errorMessage
             ];
         }
     }
@@ -157,22 +191,94 @@ class UpdateService
      */
     protected function extractUpdatePackage(string $updateFile): string
     {
+        // Check if file exists
+        if (!file_exists($updateFile)) {
+            throw new \Exception("Update file does not exist: {$updateFile}");
+        }
+
+        // Create a unique temp directory
         $tempPath = $this->updatePath . '/' . uniqid('update_');
+        
+        // Ensure the parent directory exists
+        $parentDir = dirname($this->updatePath);
+        if (!is_dir($parentDir)) {
+            mkdir($parentDir, 0755, true);
+        }
 
         // Create temp directory if it doesn't exist
+        if (!is_dir($this->updatePath)) {
+            mkdir($this->updatePath, 0755, true);
+        }
+
         if (!is_dir($tempPath)) {
             mkdir($tempPath, 0755, true);
         }
 
+        // Log extraction attempt
+        \Log::info("Attempting to extract update package", [
+            'source' => $updateFile,
+            'destination' => $tempPath
+        ]);
+
         // Extract ZIP file
         $zip = new \ZipArchive;
-        if ($zip->open($updateFile) === true) {
+        $result = $zip->open($updateFile);
+        
+        if ($result === true) {
             $zip->extractTo($tempPath);
             $zip->close();
+            
+            // Log successful extraction
+            \Log::info("Successfully extracted update package", [
+                'path' => $tempPath,
+                'files_count' => count(glob($tempPath . '/*'))
+            ]);
+            
             return $tempPath;
+        } else {
+            // Return a human-readable error message based on ZipArchive error codes
+            $errorMessage = $this->getZipErrorMessage($result);
+            \Log::error("Failed to extract update package", [
+                'error_code' => $result,
+                'error_message' => $errorMessage
+            ]);
+            
+            throw new \Exception("Could not open the update package: {$errorMessage}");
         }
-
-        throw new \Exception('Could not open the update package');
+    }
+    
+    /**
+     * Get a human-readable error message for ZipArchive error codes
+     */
+    protected function getZipErrorMessage(int $code): string
+    {
+        $errors = [
+            \ZipArchive::ER_MULTIDISK => 'Multi-disk ZIP archives not supported',
+            \ZipArchive::ER_RENAME => 'Renaming temporary file failed',
+            \ZipArchive::ER_CLOSE => 'Closing ZIP archive failed',
+            \ZipArchive::ER_SEEK => 'Seek error',
+            \ZipArchive::ER_READ => 'Read error',
+            \ZipArchive::ER_WRITE => 'Write error',
+            \ZipArchive::ER_CRC => 'CRC error',
+            \ZipArchive::ER_ZIPCLOSED => 'ZIP archive closed',
+            \ZipArchive::ER_NOENT => 'No such file',
+            \ZipArchive::ER_EXISTS => 'File already exists',
+            \ZipArchive::ER_OPEN => 'Cannot open file',
+            \ZipArchive::ER_TMPOPEN => 'Failed to create temporary file',
+            \ZipArchive::ER_ZLIB => 'Zlib error',
+            \ZipArchive::ER_MEMORY => 'Memory allocation failure',
+            \ZipArchive::ER_CHANGED => 'Entry has been changed',
+            \ZipArchive::ER_COMPNOTSUPP => 'Compression method not supported',
+            \ZipArchive::ER_EOF => 'Premature EOF',
+            \ZipArchive::ER_INVAL => 'Invalid argument',
+            \ZipArchive::ER_NOZIP => 'Not a ZIP archive',
+            \ZipArchive::ER_INTERNAL => 'Internal error',
+            \ZipArchive::ER_INCONS => 'ZIP archive inconsistent',
+            \ZipArchive::ER_REMOVE => 'Cannot remove file',
+            \ZipArchive::ER_DELETED => 'Entry has been deleted',
+        ];
+        
+        return $errors[$code] ?? "Unknown error code: {$code}";
     }
 
     /**
@@ -186,12 +292,49 @@ class UpdateService
             'update-manifest.json'
         ];
 
+        $missingPaths = [];
         foreach ($requiredPaths as $path) {
             if (!file_exists($extractPath . '/' . $path)) {
-                return false;
+                $missingPaths[] = $path;
             }
         }
-
+        
+        if (!empty($missingPaths)) {
+            \Log::error('Invalid update package structure', [
+                'extract_path' => $extractPath,
+                'missing_paths' => $missingPaths,
+                'existing_files' => glob($extractPath . '/*')
+            ]);
+            return false;
+        }
+        
+        // Check if file-manifest.json exists as it's required for processing
+        if (!file_exists($extractPath . '/manifests/file-manifest.json')) {
+            \Log::error('Missing file-manifest.json in update package', [
+                'extract_path' => $extractPath,
+                'manifests_dir_contents' => file_exists($extractPath . '/manifests') ? 
+                    glob($extractPath . '/manifests/*') : 'manifests directory not found'
+            ]);
+            return false;
+        }
+        
+        // Validate that the update-manifest.json is valid
+        try {
+            $manifest = json_decode(file_get_contents($extractPath . '/update-manifest.json'), true);
+            if (!$manifest || !isset($manifest['version'])) {
+                \Log::error('Invalid update-manifest.json in update package', [
+                    'extract_path' => $extractPath
+                ]);
+                return false;
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to parse update-manifest.json', [
+                'extract_path' => $extractPath,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
+        
         return true;
     }
 
@@ -308,10 +451,13 @@ class UpdateService
 
     /**
      * Process file changes (added, modified, deleted)
+     * 
+     * @throws \Exception When source files are not found
      */
     protected function processFileChanges(string $extractPath): void
     {
         $fileManifest = $this->readFileManifest($extractPath);
+        $filesNotFound = [];
 
         // Add new files
         foreach ($fileManifest['added'] as $file) {
@@ -324,7 +470,16 @@ class UpdateService
                 mkdir($destDir, 0755, true);
             }
 
-            copy($sourcePath, $destPath);
+            // Check if source file exists before trying to copy
+            if (file_exists($sourcePath)) {
+                copy($sourcePath, $destPath);
+            } else {
+                $filesNotFound[] = $sourcePath;
+                \Log::error("Source file not found for addition", [
+                    'file' => $file,
+                    'sourcePath' => $sourcePath
+                ]);
+            }
         }
 
         // Update modified files
@@ -332,7 +487,22 @@ class UpdateService
             $sourcePath = $extractPath . '/files/' . $file;
             $destPath = base_path($file);
 
-            copy($sourcePath, $destPath);
+            // Create directory structure if it doesn't exist
+            $destDir = dirname($destPath);
+            if (!is_dir($destDir)) {
+                mkdir($destDir, 0755, true);
+            }
+
+            // Check if source file exists before trying to copy
+            if (file_exists($sourcePath)) {
+                copy($sourcePath, $destPath);
+            } else {
+                $filesNotFound[] = $sourcePath;
+                \Log::error("Source file not found for modification", [
+                    'file' => $file,
+                    'sourcePath' => $sourcePath
+                ]);
+            }
         }
 
         // Delete files
@@ -341,7 +511,23 @@ class UpdateService
 
             if (file_exists($path)) {
                 unlink($path);
+            } else {
+                \Log::warning("Attempting to delete a file that doesn't exist", [
+                    'file' => $file,
+                    'path' => $path
+                ]);
             }
+        }
+
+        // If any files were not found, throw an exception to stop the update process
+        if (!empty($filesNotFound)) {
+            $message = count($filesNotFound) === 1 
+                ? "Source file not found: {$filesNotFound[0]}" 
+                : count($filesNotFound) . " source files not found: " . implode(", ", array_map(function($path) {
+                    return basename($path);
+                }, $filesNotFound));
+            
+            throw new \Exception($message);
         }
     }
 
@@ -378,12 +564,30 @@ class UpdateService
             foreach ($manifest['migrations'] as $migration) {
                 $sourcePath = $extractPath . '/migrations/' . $migration;
                 $destPath = database_path('migrations/' . $migration);
+                
+                // Create directory structure if needed
+                $destDir = dirname($destPath);
+                if (!is_dir($destDir)) {
+                    mkdir($destDir, 0755, true);
+                }
 
                 copy($sourcePath, $destPath);
             }
 
             // Run the migrations
-            \Artisan::call('migrate', ['--force' => true]);
+            try {
+                \Log::info("Running migrations from update package");
+                $output = \Artisan::call('migrate', ['--force' => true]);
+                \Log::info("Migrations completed", ['output' => $output]);
+            } catch (\Exception $e) {
+                \Log::error("Failed to run migrations", [
+                    'error' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                ]);
+                
+                throw new \Exception("Failed to run migrations: " . $e->getMessage(), 0, $e);
+            }
         }
     }
 
@@ -425,7 +629,20 @@ class UpdateService
 
         if (isset($manifest['postUpdateCommands']) && count($manifest['postUpdateCommands']) > 0) {
             foreach ($manifest['postUpdateCommands'] as $command) {
-                \Artisan::call($command);
+                try {
+                    \Log::info("Executing post-update command: {$command}");
+                    $result = \Artisan::call($command);
+                    \Log::info("Command executed with result: {$result}");
+                } catch (\Exception $e) {
+                    \Log::error("Failed to execute command: {$command}", [
+                        'error' => $e->getMessage(),
+                        'file' => $e->getFile(),
+                        'line' => $e->getLine()
+                    ]);
+                    
+                    // Don't throw the exception, just log it and continue
+                    // This allows the update to proceed even if a command fails
+                }
             }
         }
     }

@@ -96,7 +96,8 @@ class UpdateController extends Controller
 
                 return redirect()
                     ->route('laravel-updraft.index')
-                    ->with('success', $message);
+                    ->with('success', $message)
+                    ->with('update_success', true); // Add explicit success flag
             } else {
                 // Result is an array with error details
                 $error = is_array($result) ? $result['error'] : 'Update failed. Check the logs for more information.';
@@ -119,7 +120,8 @@ class UpdateController extends Controller
 
                 return redirect()
                     ->route('laravel-updraft.index')
-                    ->with('error', $message);
+                    ->with('error', $message)
+                    ->with('update_success', false); // Add explicit failure flag
             }
         } catch (\Exception $e) {
             // Log the exception
@@ -140,7 +142,8 @@ class UpdateController extends Controller
 
             return redirect()
                 ->route('laravel-updraft.index')
-                ->with('error', $message);
+                ->with('error', $message)
+                ->with('update_success', false); // Add explicit failure flag
         }
     }
 

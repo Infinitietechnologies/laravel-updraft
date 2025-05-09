@@ -3,11 +3,6 @@
     "app/Models/NewFeature.php",
     "resources/views/new-feature/index.blade.php"
   ],
-  "modified": [
-    "app/Http/Controllers/ExistingController.php",
-    "resources/views/layouts/app.blade.php"
-  ],
-  "deleted": [
-    "app/Models/DeprecatedModel.php"
-  ]
+  "modified": [],
+  "deleted": []
 }

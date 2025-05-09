@@ -175,15 +175,30 @@ const FilePondUploader = (function() {
             submitBtn.disabled = false;
             submitBtn.textContent = 'Upload and Apply Update';
             
-            if (xhr.status >= 200 && xhr.status < 400) {
-                // Success
-                let response;
-                try {
-                    response = JSON.parse(xhr.responseText);
-                } catch (e) {
-                    response = { message: 'Update successfully applied!' };
+            let response;
+            try {
+                response = JSON.parse(xhr.responseText);
+            } catch (e) {
+                // If response is not JSON, check for redirect or HTML response with success/error messages
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    // Try to determine success/failure from HTML response
+                    const isSuccess = xhr.responseText.includes('alert-success') && 
+                                    !xhr.responseText.includes('update_success') === false;
+                    
+                    response = { 
+                        success: isSuccess,
+                        message: isSuccess ? 'Update successfully applied!' : 'Update failed. Check the history page for details.'
+                    };
+                } else {
+                    response = { 
+                        success: false,
+                        message: 'Failed to process the update. Server returned an unexpected response.'
+                    };
                 }
-                
+            }
+            
+            // Always check for explicit success flag
+            if (response && response.success === true) {
                 // Show success message
                 const cardBody = document.getElementById(settings.cardBodyId);
                 const successAlert = createAlert('success', response.message || 'Update successfully applied!');
@@ -196,15 +211,11 @@ const FilePondUploader = (function() {
                 confirmCheckbox.checked = false;
                 submitBtn.disabled = true;
             } else {
-                // Error
-                let errorMessage = 'An error occurred during upload.';
-                try {
-                    const response = JSON.parse(xhr.responseText);
-                    if (response && response.message) {
-                        errorMessage = response.message;
-                    }
-                } catch (e) {
-                    // Use default error message
+                // Error - use the message from the response or a default message
+                let errorMessage = response.message || response.error || 'An error occurred during update.';
+                
+                if (response.backupRestored) {
+                    errorMessage += ' Your system has been restored to the previous state.';
                 }
                 
                 showError(errorMessage, settings.cardBodyId);
