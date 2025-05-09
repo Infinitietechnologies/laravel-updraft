@@ -999,9 +999,15 @@ class UpdateService
      */
     protected function normalizePath(string $path): string
     {
-        // Convert all slashes to the same format
+        // Store original path for logging
+        $originalPath = $path;
+        
+        // Convert all backslashes to forward slashes for consistency
         $path = str_replace('\\', '/', $path);
-
+        
+        // Remove any double slashes that may have been created
+        $path = preg_replace('#/+#', '/', $path);
+        
         // Fix potential duplicate paths issue (e.g. "D:/projects/app/D:/projects/app/storage")
         $basePath = str_replace('\\', '/', base_path());
         if (strpos($path, $basePath . '/' . $basePath) === 0) {
@@ -1016,7 +1022,7 @@ class UpdateService
 
         // Log the normalized path to help diagnose issues
         \Log::debug("Path normalized", [
-            'original' => $path,
+            'original' => $originalPath,
             'normalized' => $path
         ]);
 
