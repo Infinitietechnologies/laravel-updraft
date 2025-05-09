@@ -30,6 +30,14 @@ class UpdateService
         $errors = [];
 
         try {
+            // Clear any previous error messages that might be in the session
+            if (session()->has('error')) {
+                session()->forget('error');
+            }
+            if (session()->has('update_success')) {
+                session()->forget('update_success');
+            }
+
             // Extract the update package
             $extractPath = $this->extractUpdatePackage($updateFile);
 
@@ -51,20 +59,28 @@ class UpdateService
             if (UpdateHistory::hasVersion($manifest['version'])) {
                 $errorMessage = 'This update version has already been applied: ' . $manifest['version'];
 
+                // Log this situation for debugging
+                \Log::warning('Attempted to apply already applied update version', [
+                    'version' => $manifest['version'],
+                    'requestTime' => now()->toDateTimeString(),
+                ]);
+
                 // Make sure we have a session and add error message to it
                 try {
-                    if (!request()->hasSession()) {
+                    if (!request()->hasSession() && !session()->isStarted()) {
                         // If we're not in a web context or session isn't started, start one
-                        if (!session()->isStarted()) {
-                            session()->start();
-                        }
+                        session()->start();
                     }
 
-                    // Now try to set the session data
-                    if (session()->isStarted()) {
-                        session()->flash('error', $errorMessage);
-                        session()->flash('update_success', false);
-                    }
+                    // Now set the session data
+                    session()->flash('error', $errorMessage);
+                    session()->flash('update_success', false);
+
+                    // Log success of setting session data
+                    \Log::info('Successfully set error session data', [
+                        'session_id' => session()->getId(),
+                        'has_error' => session()->has('error'),
+                    ]);
                 } catch (\Exception $e) {
                     // Log the session error but continue with the update process
                     \Log::warning('Failed to set session data for update error', [

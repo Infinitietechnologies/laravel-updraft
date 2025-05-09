@@ -16,6 +16,11 @@ class UpdateController extends Controller
      */
     public function index()
     {
+        // Clear any lingering error messages that might be causing issues
+        if (session()->has('error') && session('update_success') !== false) {
+            session()->forget('error');
+        }
+        
         return view('laravel-updraft::update-form');
     }
 
@@ -24,6 +29,14 @@ class UpdateController extends Controller
      */
     public function history()
     {
+        // Clear any lingering error messages when viewing the history page
+        if (session()->has('error')) {
+            session()->forget('error');
+        }
+        if (session()->has('update_success')) {
+            session()->forget('update_success');
+        }
+        
         $updates = UpdateHistory::orderBy('applied_at', 'desc')->paginate(10);
         return view('laravel-updraft::update-history', compact('updates'));
     }
