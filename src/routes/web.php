@@ -14,10 +14,10 @@ Route::group(['prefix' => 'admin/updates', 'middleware' => array_merge(config('l
     Route::post('/process-file', [UpdateController::class, 'processFile'])->name('laravel-updraft.process-file');
     Route::delete('/revert-file', [UpdateController::class, 'revertFile'])->name('laravel-updraft.revert-file');
     
-    // Rollback routes
-    Route::get('/rollback', [UpdateController::class, 'showRollbackOptions'])->name('laravel-updraft.rollback-options');
-    Route::get('/rollback/{backupId}/confirm', [UpdateController::class, 'confirmRollback'])->name('laravel-updraft.confirm-rollback');
-    Route::post('/rollback/{backupId}/process', [UpdateController::class, 'processRollback'])->name('laravel-updraft.process-rollback');
+    // Rollback routes - temporarily disabled
+    // Route::get('/rollback', [UpdateController::class, 'showRollbackOptions'])->name('laravel-updraft.rollback-options');
+    // Route::get('/rollback/{backupId}/confirm', [UpdateController::class, 'confirmRollback'])->name('laravel-updraft.confirm-rollback');
+    // Route::post('/rollback/{backupId}/process', [UpdateController::class, 'processRollback'])->name('laravel-updraft.process-rollback');
     
     // Language switcher
     Route::get('/set-locale/{locale}', [UpdateController::class, 'setLocale'])->name('laravel-updraft.set-locale');

@@ -4,11 +4,13 @@
     <div class="container py-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2 class="fw-bold">{{ __('updraft.update_history') }}</h2>
+            <!-- Rollback manager button temporarily hidden
             <div>
                 <a href="{{ route('laravel-updraft.rollback-options') }}" class="btn btn-warning me-2">
                     <i class="fas fa-undo me-1"></i> {{ __('updraft.rollback_manager') }}
                 </a>
             </div>
+            -->
         </div>
 
         @if (session('success'))
@@ -61,12 +63,14 @@
                                                 <i class="fas fa-info-circle me-1"></i> {{ __('updraft.details') }}
                                             </button>
 
+                                            {{-- Rollback button hidden temporarily
                                             @if ($update->successful && $update->backup_id)
                                                 <a href="{{ route('laravel-updraft.confirm-rollback', $update->backup_id) }}"
                                                     class="btn btn-sm btn-outline-warning">
                                                     <i class="fas fa-undo me-1"></i> {{ __('updraft.roll_back') }}
                                                 </a>
                                             @endif
+                                            --}}
                                         </div>
                                     </td>
                                 </tr>
@@ -85,6 +89,7 @@
                                                     <h5 class="fw-bold">{{ __('updraft.backup_id') }}</h5>
                                                     <p class="mb-0">{{ $update->backup_id }}</p>
 
+                                                    {{-- Rollback button hidden temporarily
                                                     @if ($update->successful)
                                                         <div class="mt-3">
                                                             <a href="{{ route('laravel-updraft.confirm-rollback', $update->backup_id) }}"
@@ -93,6 +98,7 @@
                                                             </a>
                                                         </div>
                                                     @endif
+                                                    --}}
                                                 </div>
                                             @endif
 

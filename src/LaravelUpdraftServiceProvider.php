@@ -109,7 +109,7 @@ class LaravelUpdraftServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 UpdateCommand::class,
-                RollbackCommand::class,
+                // RollbackCommand::class, // Rollback command temporarily disabled
             ]);
         }
     }
