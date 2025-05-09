@@ -3,12 +3,12 @@
  * Handles file uploads using FilePond with AJAX submission
  */
 
-const FilePondUploader = (function() {
+const FilePondUploader = (function () {
     // Private variables
     let pond = null;
     let submitBtn = null;
     let confirmCheckbox = null;
-    
+
     /**
      * Initialize the FilePond uploader
      * @param {Object} options Configuration options
@@ -27,24 +27,24 @@ const FilePondUploader = (function() {
             uploadUrl: '',
             csrfToken: ''
         };
-        
+
         // Merge default options with provided options
         const settings = Object.assign({}, defaults, options);
-        
+
         // Get DOM elements
         submitBtn = document.getElementById(settings.submitBtnId);
         confirmCheckbox = document.getElementById(settings.confirmCheckboxId);
-        
+
         // Register FilePond plugins
         registerPlugins();
-        
+
         // Configure and create FilePond instance
         configurePond(settings);
-        
+
         // Set up form submission handler
         setupFormHandler(settings);
     }
-    
+
     /**
      * Register all required FilePond plugins
      */
@@ -56,7 +56,7 @@ const FilePondUploader = (function() {
             FilePondPluginImagePreview
         );
     }
-    
+
     /**
      * Configure the FilePond instance
      * @param {Object} settings Configuration settings
@@ -104,34 +104,34 @@ const FilePondUploader = (function() {
                 }
             }
         });
-        
+
         // Initially disable the submit button
         submitBtn.disabled = true;
     }
-    
+
     /**
      * Set up the form submission handler
      * @param {Object} settings Configuration settings
      */
     function setupFormHandler(settings) {
         const form = document.getElementById(settings.formId);
-        
-        form.addEventListener('submit', function(e) {
+
+        form.addEventListener('submit', function (e) {
             e.preventDefault();
-            
+
             if (pond.getFiles().length === 0) {
                 showError('Please select an update package to upload', settings.cardBodyId);
                 return;
             }
-            
+
             if (!confirmCheckbox.checked) {
                 showError('Please confirm that you have backed up your application', settings.cardBodyId);
                 return;
             }
-            
+
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
-            
+
             // Process the file first if it hasn't been processed yet
             if (pond.getFiles().length > 0 && pond.getFiles()[0].status !== FilePond.FileStatus.PROCESSING_COMPLETE) {
                 pond.processFile(pond.getFiles()[0]).then(file => {
@@ -147,7 +147,7 @@ const FilePondUploader = (function() {
             }
         });
     }
-    
+
     /**
      * Upload the file using AJAX
      * @param {Object} file FilePond file object
@@ -158,57 +158,82 @@ const FilePondUploader = (function() {
         const formData = new FormData();
         formData.append('_token', settings.csrfToken);
         formData.append('confirm_backup', confirmCheckbox.checked ? 1 : 0);
-        
+
         // If we have a server reference, use it, otherwise use the file object
         if (file.serverId) {
             formData.append('update_package', file.serverId);
         } else {
             formData.append('update_package', file.file);
         }
-        
+
         // Create a new XMLHttpRequest
         const xhr = new XMLHttpRequest();
         xhr.open('POST', settings.uploadUrl, true);
-        
+
+        // Set headers to indicate this is an AJAX request expecting JSON
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.setRequestHeader('Accept', 'application/json');
+
         // Set up event handlers
-        xhr.onload = function() {
+        xhr.onload = function () {
             submitBtn.disabled = false;
             submitBtn.textContent = 'Upload and Apply Update';
-            
+
+            // Debug: Log the response for troubleshooting
+            console.log('Server response:', xhr.responseText);
+
             let response;
             try {
                 response = JSON.parse(xhr.responseText);
             } catch (e) {
                 // If response is not JSON, check for redirect or HTML response with success/error messages
                 if (xhr.status >= 200 && xhr.status < 300) {
-                    // Fix: Improved success detection logic
-                    const isSuccess = xhr.responseText.includes('alert-success') && 
-                                    !xhr.responseText.includes('alert-danger');
-                    
-                    response = { 
+                    // Check for success indicators in the HTML response
+                    const htmlResponse = xhr.responseText;
+                    const hasSuccessAlert = htmlResponse.includes('alert-success');
+                    const hasDangerAlert = htmlResponse.includes('alert-danger');
+                    const hasSuccessMessage = htmlResponse.includes('successfully applied') ||
+                        htmlResponse.includes('update complete');
+                    const hasErrorMessage = htmlResponse.includes('failed') ||
+                        htmlResponse.includes('error occurred');
+
+                    // Determine success based on indicators in the page
+                    const isSuccess = (hasSuccessAlert && !hasDangerAlert) ||
+                        (hasSuccessMessage && !hasErrorMessage);
+
+                    response = {
                         success: isSuccess,
                         message: isSuccess ? 'Update successfully applied!' : 'Update failed. Check the history page for details.'
                     };
+
+                    // Log the success determination logic
+                    console.log('HTML Response - Success determination:', {
+                        hasSuccessAlert,
+                        hasDangerAlert,
+                        hasSuccessMessage,
+                        hasErrorMessage,
+                        isSuccess
+                    });
                 } else {
-                    response = { 
+                    response = {
                         success: false,
                         message: 'Failed to process the update. Server returned an unexpected response.'
                     };
                 }
             }
-            
+
             // Always check for explicit success flag
             if (response && response.success === true) {
                 // Clear any existing alerts first
                 const cardBody = document.getElementById(settings.cardBodyId);
                 clearAllAlerts(cardBody);
-                
+
                 // Show success message
                 const successAlert = createAlert('success', response.message || 'Update successfully applied!');
-                
+
                 // Insert at the top of the card body
                 cardBody.insertBefore(successAlert, cardBody.firstChild);
-                
+
                 // Reset the form
                 pond.removeFiles();
                 confirmCheckbox.checked = false;
@@ -216,25 +241,25 @@ const FilePondUploader = (function() {
             } else {
                 // Error - use the message from the response or a default message
                 let errorMessage = response.message || response.error || 'An error occurred during update.';
-                
+
                 if (response.backupRestored) {
                     errorMessage += ' Your system has been restored to the previous state.';
                 }
-                
+
                 showError(errorMessage, settings.cardBodyId);
             }
         };
-        
-        xhr.onerror = function() {
+
+        xhr.onerror = function () {
             submitBtn.disabled = false;
             submitBtn.textContent = 'Upload and Apply Update';
             showError('Connection error occurred.', settings.cardBodyId);
         };
-        
+
         // Send the request
         xhr.send(formData);
     }
-    
+
     /**
      * Clear all alert messages in a container
      * @param {HTMLElement} container The container element
@@ -243,7 +268,7 @@ const FilePondUploader = (function() {
         const existingAlerts = container.querySelectorAll('.alert');
         existingAlerts.forEach(alert => alert.remove());
     }
-    
+
     /**
      * Display an error message
      * @param {string} message The error message to display
@@ -251,18 +276,18 @@ const FilePondUploader = (function() {
      */
     function showError(message, containerId) {
         const container = document.getElementById(containerId);
-        
+
         // Remove any existing error alerts
         const existingAlerts = container.querySelectorAll('.alert-danger');
         existingAlerts.forEach(alert => alert.remove());
-        
+
         // Create and show error alert
         const errorAlert = createAlert('danger', message);
-        
+
         // Insert at the top of the container
         container.insertBefore(errorAlert, container.firstChild);
     }
-    
+
     /**
      * Create an alert element
      * @param {string} type The type of alert (success, danger, warning, etc.)
@@ -273,12 +298,12 @@ const FilePondUploader = (function() {
         const alert = document.createElement('div');
         alert.className = `alert alert-${type} alert-dismissible fade show`;
         alert.role = 'alert';
-        alert.innerHTML = message + 
+        alert.innerHTML = message +
             '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
-        
+
         return alert;
     }
-    
+
     // Public API
     return {
         init: init
