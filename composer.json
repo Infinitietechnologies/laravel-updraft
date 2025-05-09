@@ -1,5 +1,5 @@
 {
-    "name": "infinitietechnologies/updraft",
+    "name": "infinitietechnologies/laravel-updraft",
     "description": "A Laravel package for easily updating your application through update packages",
     "type": "library",
     "license": "MIT",
