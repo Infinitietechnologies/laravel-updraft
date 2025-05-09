@@ -76,12 +76,12 @@
                             <i class="fas fa-history me-1"></i> {{ __('updraft.update_history') }}
                         </a>
                     </li>
-                    <li class="nav-item">
+                    {{-- <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('laravel-updraft.rollback-options') ? 'active' : '' }}"
                             href="{{ route('laravel-updraft.rollback-options') }}">
                             <i class="fas fa-undo me-1"></i> {{ __('updraft.rollback') }}
                         </a>
-                    </li>
+                    </li> --}}
                 </ul>
                 
                 <!-- Language Selector -->

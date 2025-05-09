@@ -4,19 +4,19 @@
     <div class="container py-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2 class="fw-bold">{{ __('updraft.update_history') }}</h2>
-            <!-- Rollback manager button temporarily hidden
+            {{-- Rollback manager button temporarily hidden
             <div>
                 <a href="{{ route('laravel-updraft.rollback-options') }}" class="btn btn-warning me-2">
                     <i class="fas fa-undo me-1"></i> {{ __('updraft.rollback_manager') }}
                 </a>
-            </div>
-            -->
+            </div> --}}
         </div>
 
         @if (session('success'))
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 {{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{{ __('updraft.close') }}"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"
+                    aria-label="{{ __('updraft.close') }}"></button>
             </div>
         @endif
 
