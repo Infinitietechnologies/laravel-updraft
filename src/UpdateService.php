@@ -682,25 +682,62 @@ class UpdateService
             throw new \Exception('Backup not found');
         }
 
+        \Log::info("Starting restore from backup", ['backupId' => $backupId, 'backupPath' => $backupPath]);
+        
         // Recursively restore all files from the backup
         $iterator = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($backupPath, \RecursiveDirectoryIterator::SKIP_DOTS),
             \RecursiveIteratorIterator::SELF_FIRST
         );
-
+        
         foreach ($iterator as $item) {
             if ($item->isFile()) {
                 $relativePath = str_replace($backupPath . '/', '', $item->getPathname());
-
+                
                 // Skip backup metadata
                 if ($relativePath === 'backup-info.json') {
                     continue;
                 }
-
+                
                 $destPath = base_path($relativePath);
-                copy($item->getPathname(), $destPath);
+                
+                // Create directory structure if needed
+                $destDir = dirname($destPath);
+                if (!is_dir($destDir)) {
+                    try {
+                        // Ensure parent directories are created recursively
+                        if (!mkdir($destDir, 0755, true) && !is_dir($destDir)) {
+                            throw new \Exception("Failed to create directory: {$destDir}");
+                        }
+                        
+                        \Log::info("Created directory", ['path' => $destDir]);
+                    } catch (\Exception $e) {
+                        \Log::error("Error creating directory", [
+                            'path' => $destDir,
+                            'error' => $e->getMessage(),
+                            'exists' => is_dir($destDir),
+                            'parent_exists' => is_dir(dirname($destDir))
+                        ]);
+                        throw new \Exception("Failed to create directory {$destDir}: " . $e->getMessage());
+                    }
+                }
+                
+                try {
+                    if (!copy($item->getPathname(), $destPath)) {
+                        throw new \Exception("Failed to copy file from {$item->getPathname()} to {$destPath}");
+                    }
+                } catch (\Exception $e) {
+                    \Log::error("Error copying file", [
+                        'source' => $item->getPathname(),
+                        'destination' => $destPath,
+                        'error' => $e->getMessage()
+                    ]);
+                    throw new \Exception("Failed to copy file: " . $e->getMessage());
+                }
             }
         }
+        
+        \Log::info("Finished restoring from backup", ['backupId' => $backupId]);
     }
 
     /**
@@ -799,6 +836,8 @@ class UpdateService
             throw new \Exception('Backup not found');
         }
         
+        \Log::info("Starting restore from backup", ['backupId' => $backupId, 'backupPath' => $backupPath]);
+        
         // Recursively restore all files from the backup
         $iterator = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($backupPath, \RecursiveDirectoryIterator::SKIP_DOTS),
@@ -819,12 +858,40 @@ class UpdateService
                 // Create directory structure if needed
                 $destDir = dirname($destPath);
                 if (!is_dir($destDir)) {
-                    mkdir($destDir, 0755, true);
+                    try {
+                        // Ensure parent directories are created recursively
+                        if (!mkdir($destDir, 0755, true) && !is_dir($destDir)) {
+                            throw new \Exception("Failed to create directory: {$destDir}");
+                        }
+                        
+                        \Log::info("Created directory", ['path' => $destDir]);
+                    } catch (\Exception $e) {
+                        \Log::error("Error creating directory", [
+                            'path' => $destDir,
+                            'error' => $e->getMessage(),
+                            'exists' => is_dir($destDir),
+                            'parent_exists' => is_dir(dirname($destDir))
+                        ]);
+                        throw new \Exception("Failed to create directory {$destDir}: " . $e->getMessage());
+                    }
                 }
                 
-                copy($item->getPathname(), $destPath);
+                try {
+                    if (!copy($item->getPathname(), $destPath)) {
+                        throw new \Exception("Failed to copy file from {$item->getPathname()} to {$destPath}");
+                    }
+                } catch (\Exception $e) {
+                    \Log::error("Error copying file", [
+                        'source' => $item->getPathname(),
+                        'destination' => $destPath,
+                        'error' => $e->getMessage()
+                    ]);
+                    throw new \Exception("Failed to copy file: " . $e->getMessage());
+                }
             }
         }
+        
+        \Log::info("Finished restoring from backup", ['backupId' => $backupId]);
     }
     
     /**
