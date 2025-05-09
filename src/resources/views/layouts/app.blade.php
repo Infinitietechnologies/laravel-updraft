@@ -53,7 +53,7 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
         <div class="container">
-            <a class="navbar-brand d-flex align-items-center" href="{{ route('laravel-updraft.index') }}">
+            <a class="navbar-brand d-flex align-items-center" href="{{ route('updraft.index') }}">
                 <i class="fas fa-cloud-download-alt text-primary me-2"></i>
                 <span>{{ __('updraft.app_name') }}</span>
             </a>
@@ -65,20 +65,20 @@
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('laravel-updraft.index') ? 'active' : '' }}"
-                            href="{{ route('laravel-updraft.index') }}">
+                        <a class="nav-link {{ request()->routeIs('updraft.index') ? 'active' : '' }}"
+                            href="{{ route('updraft.index') }}">
                             <i class="fas fa-upload me-1"></i> {{ __('updraft.upload_update') }}
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('laravel-updraft.history') ? 'active' : '' }}"
-                            href="{{ route('laravel-updraft.history') }}">
+                        <a class="nav-link {{ request()->routeIs('updraft.history') ? 'active' : '' }}"
+                            href="{{ route('updraft.history') }}">
                             <i class="fas fa-history me-1"></i> {{ __('updraft.update_history') }}
                         </a>
                     </li>
                     {{-- <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('laravel-updraft.rollback-options') ? 'active' : '' }}"
-                            href="{{ route('laravel-updraft.rollback-options') }}">
+                        <a class="nav-link {{ request()->routeIs('updraft.rollback-options') ? 'active' : '' }}"
+                            href="{{ route('updraft.rollback-options') }}">
                             <i class="fas fa-undo me-1"></i> {{ __('updraft.rollback') }}
                         </a>
                     </li> --}}
@@ -98,10 +98,10 @@
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
                         <li>
-                            <a class="dropdown-item {{ app()->getLocale() == 'en' ? 'active' : '' }}" href="{{ route('laravel-updraft.set-locale', ['locale' => 'en']) }}">English</a>
+                            <a class="dropdown-item {{ app()->getLocale() == 'en' ? 'active' : '' }}" href="{{ route('updraft.set-locale', ['locale' => 'en']) }}">English</a>
                         </li>
                         <li>
-                            <a class="dropdown-item {{ app()->getLocale() == 'es' ? 'active' : '' }}" href="{{ route('laravel-updraft.set-locale', ['locale' => 'es']) }}">Español</a>
+                            <a class="dropdown-item {{ app()->getLocale() == 'es' ? 'active' : '' }}" href="{{ route('updraft.set-locale', ['locale' => 'es']) }}">Español</a>
                         </li>
                     </ul>
                 </div>
@@ -123,7 +123,7 @@
                 </div>
                 <div class="col-md-6 text-md-end">
                     <p class="mb-0">
-                        <small class="text-muted">v{{ config('app.version', '1.0.0') }}</small>
+                        <small class="text-muted">v{{ config('updraft.app.version', '1.0.0') }}</small>
                     </p>
                 </div>
             </div>
@@ -132,10 +132,10 @@
 
     <!-- Hidden elements to store route info -->
     <div class="d-none">
-        <div data-route="laravel-updraft.process-file" data-url="{{ route('laravel-updraft.process-file') }}"></div>
-        <div data-route="laravel-updraft.revert-file" data-url="{{ route('laravel-updraft.revert-file') }}"></div>
-        <div data-route="laravel-updraft.upload" data-url="{{ route('laravel-updraft.upload') }}"></div>
-        <div data-route="laravel-updraft.history" data-url="{{ route('laravel-updraft.history') }}"></div>
+        <div data-route="updraft.process-file" data-url="{{ route('updraft.process-file') }}"></div>
+        <div data-route="updraft.revert-file" data-url="{{ route('updraft.revert-file') }}"></div>
+        <div data-route="updraft.upload" data-url="{{ route('updraft.upload') }}"></div>
+        <div data-route="updraft.history" data-url="{{ route('updraft.history') }}"></div>
     </div>
 
     <!-- jQuery -->
@@ -144,8 +144,8 @@
     <!-- Bootstrap 5.3 JS Bundle with Popper -->
     <script src="{{ asset($assetPath . '/js/bootstrap.bundle.min.js') }}"></script>
 
-    <!-- Main Laravel Updraft JS -->
-    <script src="{{ asset($assetPath . '/js/laravel-updraft.js') }}"></script>
+    <!-- Main Updraft JS -->
+    <script src="{{ asset($assetPath . '/js/updraft.js') }}"></script>
 
     @yield('scripts')
 </body>

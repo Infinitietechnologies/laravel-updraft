@@ -1,5 +1,5 @@
 {
-    "name": "infinitietechnologies/laravel-updraft",
+    "name": "infinitietechnologies/updraft",
     "description": "A Laravel package for easily updating your application through update packages",
     "type": "library",
     "license": "MIT",
@@ -22,7 +22,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "LaravelUpdraft\\LaravelUpdraftServiceProvider"
+                "LaravelUpdraft\\UpdraftServiceProvider"
             ]
         }
     },
