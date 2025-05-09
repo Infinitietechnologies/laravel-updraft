@@ -40,7 +40,7 @@ class UpdateController extends Controller
     }
 
     /**
-     * Process the update package upload
+     * Upload process handler with vendor modification check
      */
     public function upload(Request $request, UpdateService $updateService)
     {
@@ -85,10 +85,22 @@ class UpdateController extends Controller
                 $shouldCleanupTemp = true;
             }
 
+            // Force vendor updates if explicitly specified
+            $forceVendorUpdates = $request->boolean('force_vendor_updates', false);
+            
             // Process the update
-            $result = $updateService->processUpdate($fullPath);
+            $result = $updateService->processUpdate($fullPath, $forceVendorUpdates);
 
-            // Clean up the temporary file
+            // Check if this update contains vendor modifications that require confirmation
+            if (is_array($result) && isset($result['vendor_update_warning']) && $result['vendor_update_warning']) {
+                // Keep the file for the confirmation page
+                return redirect()->route('laravel-updraft.confirm-vendor-update', [
+                    'update_file' => $fullPath,
+                    'vendor_files_count' => $result['vendor_files_count'] ?? 0
+                ]);
+            }
+            
+            // Clean up the temporary file if needed
             if (isset($shouldCleanupTemp) && $shouldCleanupTemp && isset($filePath)) {
                 Storage::delete($filePath);
             }
@@ -154,6 +166,92 @@ class UpdateController extends Controller
                 ->route('laravel-updraft.index')
                 ->with('error', $message)
                 ->with('update_success', false); // Explicitly mark as failed
+        }
+    }
+
+    /**
+     * Show confirmation screen for vendor updates
+     */
+    public function confirmVendorUpdate(Request $request, UpdateService $updateService)
+    {
+        try {
+            $updateFile = $request->query('update_file');
+            
+            if (empty($updateFile) || !file_exists($updateFile)) {
+                throw new \Exception('Invalid or missing update file');
+            }
+            
+            // Get information about vendor modifications
+            $vendorInfo = $updateService->checkForVendorModifications($updateFile);
+            
+            if (!$vendorInfo || !isset($vendorInfo['has_vendor_files']) || !$vendorInfo['has_vendor_files']) {
+                // No vendor files to confirm, redirect to normal update process
+                return redirect()->route('laravel-updraft.index')
+                    ->with('error', 'No vendor files found in update package.');
+            }
+            
+            return view('laravel-updraft::vendor.confirm-vendor-update', [
+                'name' => $vendorInfo['version'] ?? 'Unknown update',
+                'version' => $vendorInfo['version'] ?? 'Unknown',
+                'vendorFileCount' => $vendorInfo['count'] ?? 0,
+                'vendorFiles' => $vendorInfo['files'] ?? [],
+                'extractPath' => $vendorInfo['extractPath'] ?? null,
+                'updateFile' => $updateFile,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error showing vendor update confirmation', [
+                'error' => $e->getMessage(),
+            ]);
+            
+            return redirect()->route('laravel-updraft.index')
+                ->with('error', 'Error preparing vendor update confirmation: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Process a confirmed vendor update
+     */
+    public function processVendorUpdate(Request $request, UpdateService $updateService)
+    {
+        try {
+            $updateFile = $request->input('update_file');
+            $extractPath = $request->input('extract_path');
+            
+            if (empty($updateFile) || !file_exists($updateFile)) {
+                throw new \Exception('Invalid or missing update file');
+            }
+            
+            // Process the update with forced vendor updates
+            $result = $updateService->processUpdate($updateFile, true);
+            
+            // Delete the update file when done
+            @unlink($updateFile);
+            
+            if ($result === true) {
+                return redirect()->route('laravel-updraft.index')
+                    ->with('success', 'Update with vendor modifications successfully applied!');
+            } else {
+                $error = is_array($result) ? $result['error'] : 'Update failed. Check the logs for more information.';
+                $backupRestored = is_array($result) && isset($result['backupRestored']) && $result['backupRestored'];
+                
+                $message = $error;
+                if ($backupRestored) {
+                    $message .= ' Your system has been restored to the previous state.';
+                }
+                
+                return redirect()->route('laravel-updraft.index')
+                    ->with('error', $message)
+                    ->with('update_success', false);
+            }
+        } catch (\Exception $e) {
+            Log::error('Vendor update processing failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return redirect()->route('laravel-updraft.index')
+                ->with('error', 'Vendor update failed: ' . $e->getMessage())
+                ->with('update_success', false);
         }
     }
 

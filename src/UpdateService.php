@@ -41,9 +41,10 @@ class UpdateService
      * Process an uploaded update package
      * 
      * @param string $updateFile Path to the uploaded ZIP file
+     * @param bool $forceVendorUpdates Whether to force vendor updates without additional confirmation
      * @return bool|array Returns true on success, or error array on failure
      */
-    public function processUpdate(string $updateFile): bool|array
+    public function processUpdate(string $updateFile, bool $forceVendorUpdates = false): bool|array
     {
         $backupId = null;
         $manifest = null;
@@ -98,6 +99,26 @@ class UpdateService
             // Get file manifest for backup creation
             $fileManifest = $this->fileUpdateService->readFileManifest($extractPath);
             
+            // Check if this update contains vendor modifications
+            if (isset($fileManifest['vendor']) && !empty($fileManifest['vendor']) && !$forceVendorUpdates) {
+                // If we're in a web context, set a special session variable to indicate vendor updates
+                if (request()->hasSession()) {
+                    session()->flash('vendor_update_warning', [
+                        'count' => count($fileManifest['vendor']),
+                        'extractPath' => $extractPath,
+                        'updateFile' => $updateFile,
+                        'manifest' => $manifest
+                    ]);
+                    
+                    return [
+                        'success' => false,
+                        'vendor_update_warning' => true,
+                        'vendor_files_count' => count($fileManifest['vendor']),
+                        'message' => 'This update contains vendor file modifications that may conflict with Composer. Please confirm to proceed.'
+                    ];
+                }
+            }
+            
             // Create backup before applying updates
             $backupId = $this->backupService->createBackup($extractPath, $fileManifest);
 
@@ -137,7 +158,11 @@ class UpdateService
             }
 
             // Log successful update in the database
-            $this->historyLogger->logUpdateHistory($manifest, $backupId, true);
+            $this->historyLogger->logUpdateHistory($manifest, $backupId, true, 
+                isset($fileManifest['vendor']) && !empty($fileManifest['vendor']) 
+                    ? ['vendor_files_modified' => count($fileManifest['vendor'])] 
+                    : []
+            );
 
             // Clean up the extracted files
             if ($extractPath && is_dir($extractPath)) {
@@ -145,7 +170,11 @@ class UpdateService
             }
 
             // Set success message in session
-            session()->flash('success', 'Update applied successfully.');
+            $successMessage = 'Update applied successfully.';
+            if (isset($fileManifest['vendor']) && !empty($fileManifest['vendor'])) {
+                $successMessage .= ' Warning: ' . count($fileManifest['vendor']) . ' vendor files were modified, which may cause issues with Composer.';
+            }
+            session()->flash('success', $successMessage);
 
             return true;
         } catch (\Exception $e) {
@@ -312,5 +341,58 @@ class UpdateService
     public function rollbackToBackup(string $backupId): bool
     {
         return $this->rollbackService->rollbackToBackup($backupId);
+    }
+
+    /**
+     * Check if an update package contains vendor modifications
+     *
+     * @param string $updateFile Path to the uploaded ZIP file
+     * @return array Information about vendor modifications if present, false otherwise
+     */
+    public function checkForVendorModifications(string $updateFile): array|false
+    {
+        try {
+            $extractPath = $this->extractUpdatePackage($updateFile);
+            
+            // Validate the update package structure
+            if (!$this->packageValidator->validatePackageStructure($extractPath)) {
+                // Clean up and return false
+                $this->fileUpdateService->cleanupExtractedFiles($extractPath);
+                return false;
+            }
+            
+            // Get file manifest for backup creation
+            $fileManifest = $this->fileUpdateService->readFileManifest($extractPath);
+            
+            // Check if this update contains vendor modifications
+            if (isset($fileManifest['vendor']) && !empty($fileManifest['vendor'])) {
+                $manifest = $this->updateProcessor->readMainManifest($extractPath);
+                $vendorInfo = [
+                    'has_vendor_files' => true,
+                    'count' => count($fileManifest['vendor']),
+                    'version' => $manifest['version'] ?? 'Unknown',
+                    'files' => array_slice($fileManifest['vendor'], 0, 10), // Just show first 10 files
+                    'extractPath' => $extractPath,
+                ];
+                
+                // Don't clean up - we'll need the extracted files if they proceed
+                return $vendorInfo;
+            }
+            
+            // Clean up the extracted files
+            $this->fileUpdateService->cleanupExtractedFiles($extractPath);
+            return false;
+        } catch (\Exception $e) {
+            \Log::error('Error checking for vendor modifications', [
+                'error' => $e->getMessage(),
+                'updateFile' => $updateFile
+            ]);
+            
+            if (isset($extractPath) && is_dir($extractPath)) {
+                $this->fileUpdateService->cleanupExtractedFiles($extractPath);
+            }
+            
+            return false;
+        }
     }
 }

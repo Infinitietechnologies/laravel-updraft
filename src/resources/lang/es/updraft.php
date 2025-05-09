@@ -26,6 +26,7 @@ return [
         'run_migrations' => 'Ejecutará las migraciones incluidas',
         'update_config' => 'Actualizará los archivos de configuración',
         'run_commands' => 'Ejecutará comandos posteriores a la actualización',
+        'update_vendor' => 'Actualizará archivos de vendor si están incluidos en el paquete',
         'restore' => 'Si la actualización falla, el sistema intentará restaurar desde la copia de seguridad.',
     ],
     
@@ -69,6 +70,11 @@ return [
     'db_warning' => 'Los cambios en la base de datos no pueden revertirse automáticamente. Asegúrese de tener una copia de seguridad de la base de datos.',
     'safety_backup' => 'Se creará una copia de seguridad de su estado actual antes de la reversión.',
     'cancel' => 'Cancelar',
+    
+    // Vendor update
+    'vendor_updates' => 'Actualizaciones de Vendor',
+    'vendor_update_description' => 'Esta actualización incluye cambios en archivos de vendor. Estos se aplicarán automáticamente.',
+    'vendor_update_warning' => 'Actualizar archivos de vendor directamente puede causar problemas si posteriormente ejecuta composer update. Considere actualizar dependencias a través de composer cuando sea posible.',
 
     // Alert messages
     'close' => 'Cerrar',

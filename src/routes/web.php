@@ -10,6 +10,10 @@ Route::group(['prefix' => 'admin/updates', 'middleware' => array_merge(config('l
     Route::post('/upload', [UpdateController::class, 'upload'])->name('laravel-updraft.upload');
     Route::get('/history', [UpdateController::class, 'history'])->name('laravel-updraft.history');
     
+    // Vendor update confirmation routes
+    Route::get('/confirm-vendor-update', [UpdateController::class, 'confirmVendorUpdate'])->name('laravel-updraft.confirm-vendor-update');
+    Route::post('/process-vendor-update', [UpdateController::class, 'processVendorUpdate'])->name('laravel-updraft.process-vendor-update');
+    
     // FilePond endpoints for file handling
     Route::post('/process-file', [UpdateController::class, 'processFile'])->name('laravel-updraft.process-file');
     Route::delete('/revert-file', [UpdateController::class, 'revertFile'])->name('laravel-updraft.revert-file');

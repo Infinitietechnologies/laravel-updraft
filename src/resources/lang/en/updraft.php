@@ -26,6 +26,7 @@ return [
         'run_migrations' => 'Run any included database migrations',
         'update_config' => 'Update configuration files',
         'run_commands' => 'Run any post-update commands',
+        'update_vendor' => 'Update vendor files if included in the package',
         'restore' => 'If the update fails, the system will attempt to restore from backup.',
     ],
     
@@ -69,6 +70,11 @@ return [
     'db_warning' => 'Database changes cannot be automatically reverted. Make sure you have a database backup.',
     'safety_backup' => 'A safety backup of your current state will be created before the rollback.',
     'cancel' => 'Cancel',
+    
+    // Vendor update
+    'vendor_updates' => 'Vendor Updates',
+    'vendor_update_description' => 'This update includes changes to vendor files. These will be applied automatically.',
+    'vendor_update_warning' => 'Updating vendor files directly may cause issues if you later run composer update. Consider updating dependencies through composer when possible.',
 
     // Alert messages
     'close' => 'Close',

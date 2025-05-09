@@ -74,6 +74,11 @@ class FileUpdateService
                 ]);
             }
         }
+        
+        // Process vendor files if included in the update package
+        if (isset($fileManifest['vendor']) && is_array($fileManifest['vendor']) && !empty($fileManifest['vendor'])) {
+            $this->processVendorFiles($extractPath, $fileManifest['vendor'], $filesNotFound);
+        }
 
         // If any files were not found, throw an exception to stop the update process
         if (!empty($filesNotFound)) {
@@ -85,6 +90,135 @@ class FileUpdateService
 
             throw new \Exception($message);
         }
+    }
+    
+    /**
+     * Process vendor files included in the update package
+     * 
+     * @param string $extractPath Path to extracted update package
+     * @param array $vendorFiles List of vendor files to update
+     * @param array &$filesNotFound Reference to array of files not found
+     * @return void
+     */
+    protected function processVendorFiles(string $extractPath, array $vendorFiles, array &$filesNotFound): void
+    {
+        $vendorDir = base_path('vendor');
+        
+        // Check if vendor directory exists
+        if (!is_dir($vendorDir)) {
+            \Log::warning("Vendor directory not found, skipping vendor updates", [
+                'vendor_path' => $vendorDir
+            ]);
+            return;
+        }
+        
+        \Log::info("Processing vendor files update", [
+            'file_count' => count($vendorFiles)
+        ]);
+        
+        // Create a backup of the affected vendor files before updating
+        $this->backupVendorFiles($vendorFiles, $vendorDir);
+        
+        // Create a composer.json info file to warn about vendor modifications
+        $this->createVendorModificationWarningFile($vendorFiles);
+        
+        foreach ($vendorFiles as $file) {
+            $sourcePath = $extractPath . '/files/vendor/' . $file;
+            $destPath = $vendorDir . '/' . $file;
+            
+            // Create directory structure if it doesn't exist
+            $destDir = dirname($destPath);
+            if (!is_dir($destDir)) {
+                mkdir($destDir, 0755, true);
+            }
+            
+            // Check if source file exists before trying to copy
+            if (file_exists($sourcePath)) {
+                copy($sourcePath, $destPath);
+                \Log::debug("Updated vendor file", ['file' => $file]);
+            } else {
+                $filesNotFound[] = $sourcePath;
+                \Log::error("Source vendor file not found", [
+                    'file' => $file,
+                    'sourcePath' => $sourcePath
+                ]);
+            }
+        }
+        
+        // Log a warning about potential issues with composer
+        \Log::warning("Vendor files have been modified directly. This may cause issues with future Composer operations.", [
+            'modified_files_count' => count($vendorFiles)
+        ]);
+    }
+    
+    /**
+     * Create a backup of the vendor files being modified
+     * 
+     * @param array $vendorFiles List of vendor files to backup
+     * @param string $vendorDir Path to vendor directory
+     * @return void
+     */
+    protected function backupVendorFiles(array $vendorFiles, string $vendorDir): void
+    {
+        $backupDir = storage_path('app/vendor-backups/' . date('Y-m-d-His'));
+        
+        if (!is_dir($backupDir)) {
+            mkdir($backupDir, 0755, true);
+        }
+        
+        foreach ($vendorFiles as $file) {
+            $sourcePath = $vendorDir . '/' . $file;
+            $destPath = $backupDir . '/' . $file;
+            
+            if (file_exists($sourcePath)) {
+                // Create directory structure for backup
+                $destDir = dirname($destPath);
+                if (!is_dir($destDir)) {
+                    mkdir($destDir, 0755, true);
+                }
+                
+                copy($sourcePath, $destPath);
+            }
+        }
+        
+        // Create a manifest of backed up files
+        $manifestData = [
+            'timestamp' => date('Y-m-d H:i:s'),
+            'files' => $vendorFiles
+        ];
+        
+        file_put_contents($backupDir . '/manifest.json', json_encode($manifestData, JSON_PRETTY_PRINT));
+        
+        \Log::info("Created backup of vendor files before modification", [
+            'backup_path' => $backupDir,
+            'file_count' => count($vendorFiles)
+        ]);
+    }
+    
+    /**
+     * Create a file to track and warn about vendor modifications
+     * 
+     * @param array $vendorFiles List of modified vendor files
+     * @return void
+     */
+    protected function createVendorModificationWarningFile(array $vendorFiles): void
+    {
+        $warningFilePath = base_path('vendor/UPDRAFT-MODIFIED-FILES.json');
+        
+        // Read existing file if it exists
+        $existingData = [];
+        if (file_exists($warningFilePath)) {
+            $existingData = json_decode(file_get_contents($warningFilePath), true) ?: [];
+        }
+        
+        // Add new modification entry
+        $existingData[] = [
+            'timestamp' => date('Y-m-d H:i:s'),
+            'modified_files' => $vendorFiles,
+            'warning' => 'These files were modified by Laravel Updraft and may be overwritten by Composer operations'
+        ];
+        
+        file_put_contents($warningFilePath, json_encode($existingData, JSON_PRETTY_PRINT));
     }
 
     /**
