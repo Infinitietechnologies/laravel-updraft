@@ -418,6 +418,15 @@ class UpdateService
     {
         $backupId = date('YmdHis') . '_' . uniqid();
         $backupPath = $this->backupPath . '/' . $backupId;
+        
+        // Ensure paths are normalized to prevent duplicate base path issues
+        $backupPath = $this->normalizePath($backupPath);
+        
+        // Log backup path for debugging
+        \Log::info("Creating backup", [
+            'backupId' => $backupId,
+            'backupPath' => $backupPath
+        ]);
 
         // Create backup directory
         if (!is_dir($backupPath)) {
@@ -431,6 +440,9 @@ class UpdateService
         foreach ($fileManifest['modified'] as $file) {
             $sourcePath = base_path($file);
             $destPath = $backupPath . '/' . $file;
+            
+            // Normalize destination path
+            $destPath = $this->normalizePath($destPath);
 
             // Create directory structure
             $destDir = dirname($destPath);
@@ -448,6 +460,9 @@ class UpdateService
         foreach ($fileManifest['deleted'] as $file) {
             $sourcePath = base_path($file);
             $destPath = $backupPath . '/' . $file;
+            
+            // Normalize destination path
+            $destPath = $this->normalizePath($destPath);
 
             if (file_exists($sourcePath)) {
                 // Create directory structure
@@ -832,6 +847,9 @@ class UpdateService
     {
         $backupPath = $this->backupPath . '/' . $backupId;
         
+        // Ensure paths are normalized
+        $backupPath = $this->normalizePath($backupPath);
+        
         if (!is_dir($backupPath)) {
             throw new \Exception('Backup not found');
         }
@@ -854,6 +872,9 @@ class UpdateService
                 }
                 
                 $destPath = base_path($relativePath);
+                
+                // Normalize the destination path to prevent duplicate path issues
+                $destPath = $this->normalizePath($destPath);
                 
                 // Create directory structure if needed
                 $destDir = dirname($destPath);
@@ -952,5 +973,37 @@ class UpdateService
         
         // Remove the main directory
         rmdir($extractPath);
+    }
+
+    /**
+     * Normalize a path to prevent duplicate base paths
+     * 
+     * @param string $path The path to normalize
+     * @return string The normalized path
+     */
+    protected function normalizePath(string $path): string
+    {
+        // Convert all slashes to the same format
+        $path = str_replace('\\', '/', $path);
+        
+        // Fix potential duplicate paths issue (e.g. "D:/projects/app/D:/projects/app/storage")
+        $basePath = str_replace('\\', '/', base_path());
+        if (strpos($path, $basePath . '/' . $basePath) === 0) {
+            $path = preg_replace('~^' . preg_quote($basePath . '/' . $basePath, '~') . '~', $basePath, $path);
+        }
+        
+        // Also check for storage path duplications
+        $storagePath = str_replace('\\', '/', storage_path());
+        if (strpos($path, $storagePath . '/' . $storagePath) === 0) {
+            $path = preg_replace('~^' . preg_quote($storagePath . '/' . $storagePath, '~') . '~', $storagePath, $path);
+        }
+        
+        // Log the normalized path to help diagnose issues
+        \Log::debug("Path normalized", [
+            'original' => $path,
+            'normalized' => $path
+        ]);
+        
+        return $path;
     }
 }
