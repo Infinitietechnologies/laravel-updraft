@@ -51,12 +51,15 @@ class UpdateService
         $errors = [];
 
         try {
-            // Clear any previous error messages that might be in the session
+            // Clear any previous messages that might be in the session
             if (session()->has('error')) {
                 session()->forget('error');
             }
             if (session()->has('update_success')) {
                 session()->forget('update_success');
+            }
+            if (session()->has('success')) {
+                session()->forget('success');
             }
 
             // Extract the update package
@@ -140,6 +143,9 @@ class UpdateService
             if ($extractPath && is_dir($extractPath)) {
                 $this->fileUpdateService->cleanupExtractedFiles($extractPath);
             }
+
+            // Set success message in session
+            session()->flash('success', 'Update applied successfully.');
 
             return true;
         } catch (\Exception $e) {

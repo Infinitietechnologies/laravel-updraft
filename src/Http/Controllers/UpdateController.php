@@ -16,10 +16,8 @@ class UpdateController extends Controller
      */
     public function index()
     {
-        // Clear any lingering error messages that might be causing issues
-        if (session()->has('error') && session('update_success') !== false) {
-            session()->forget('error');
-        }
+        // Clear any lingering messages that might be causing issues
+        session()->forget(['error', 'update_success', 'success']);
         
         return view('laravel-updraft::update-form');
     }
