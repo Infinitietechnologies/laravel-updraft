@@ -22,7 +22,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "LaravelUpdraft\\UpdraftServiceProvider"
+                "LaravelUpdraft\\LaravelUpdraftServiceProvider"
             ]
         }
     },

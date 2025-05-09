@@ -9,7 +9,7 @@ use LaravelUpdraft\Console\Commands\RollbackCommand;
 use LaravelUpdraft\Http\Middleware\LocaleMiddleware;
 use Illuminate\Routing\Router;
 
-class UpdraftServiceProvider extends ServiceProvider
+class LaravelUpdraftServiceProvider extends ServiceProvider
 {
     /**
      * Register any application services.
