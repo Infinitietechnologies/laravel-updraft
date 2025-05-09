@@ -96,8 +96,7 @@ class UpdateController extends Controller
 
                 return redirect()
                     ->route('laravel-updraft.index')
-                    ->with('success', $message)
-                    ->with('update_success', true); // Add explicit success flag
+                    ->with('success', $message);
             } else {
                 // Result is an array with error details
                 $error = is_array($result) ? $result['error'] : 'Update failed. Check the logs for more information.';
@@ -111,17 +110,17 @@ class UpdateController extends Controller
                 // Check if the request is AJAX or FilePond
                 if ($request->ajax() || $request->expectsJson()) {
                     return response()->json([
-                        'success' => false, // Clearly indicate failure
+                        'success' => false,
                         'message' => $message,
                         'error' => $error,
                         'backupRestored' => $backupRestored
-                    ], 422); // Use 422 Unprocessable Entity instead of 500 for validation failures
+                    ], 422);
                 }
 
                 return redirect()
                     ->route('laravel-updraft.index')
                     ->with('error', $message)
-                    ->with('update_success', false); // Add explicit failure flag
+                    ->with('update_success', false); // Explicitly mark as failed
             }
         } catch (\Exception $e) {
             // Log the exception
@@ -143,7 +142,7 @@ class UpdateController extends Controller
             return redirect()
                 ->route('laravel-updraft.index')
                 ->with('error', $message)
-                ->with('update_success', false); // Add explicit failure flag
+                ->with('update_success', false); // Explicitly mark as failed
         }
     }
 

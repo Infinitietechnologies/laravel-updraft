@@ -49,7 +49,31 @@ class UpdateService
             
             // Check if this version is already applied
             if (UpdateHistory::hasVersion($manifest['version'])) {
-                throw new \Exception('This update version has already been applied: ' . $manifest['version'], 1004);
+                $errorMessage = 'This update version has already been applied: ' . $manifest['version'];
+                
+                // Make sure we have a session and add error message to it
+                try {
+                    if (!request()->hasSession()) {
+                        // If we're not in a web context or session isn't started, start one
+                        if (!session()->isStarted()) {
+                            session()->start();
+                        }
+                    }
+                    
+                    // Now try to set the session data
+                    if (session()->isStarted()) {
+                        session()->flash('error', $errorMessage);
+                        session()->flash('update_success', false);
+                    }
+                } catch (\Exception $e) {
+                    // Log the session error but continue with the update process
+                    \Log::warning('Failed to set session data for update error', [
+                        'error' => $e->getMessage(),
+                        'updateVersion' => $manifest['version']
+                    ]);
+                }
+                
+                throw new \Exception($errorMessage, 1004);
             }
 
             // Create backup before applying updates
