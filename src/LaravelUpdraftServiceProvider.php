@@ -69,7 +69,7 @@ class LaravelUpdraftServiceProvider extends ServiceProvider
         
         // Publish translations
         $this->publishes([
-            __DIR__ . '/resources/lang' => resource_path('lang/vendor/laravel-updraft'),
+            __DIR__ . '/resources/lang' => resource_path('lang'),
         ], 'laravel-updraft-translations');
         
         // Load migrations

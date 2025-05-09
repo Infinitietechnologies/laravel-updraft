@@ -53,6 +53,12 @@ Or publish the views to customize the look and feel:
 php artisan vendor:publish --tag=laravel-updraft-views
 ```
 
+To publish the language files for internationalization:
+
+```bash
+php artisan vendor:publish --tag=laravel-updraft-translations
+```
+
 Finally, publish the assets to make them available publicly:
 
 ```bash
