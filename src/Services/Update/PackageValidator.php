@@ -73,11 +73,11 @@ class PackageValidator
     public function checkVersionCompatibility(array $manifest): bool|string
     {
         // Get the current application version
-        $currentVersion = config('app.version', '0.0.0');
+        $currentVersion = config('updraft.app.version', '0.0.0');
 
         // If app.version isn't set, log a warning
         if ($currentVersion === '0.0.0') {
-            \Log::warning('app.version is not set in config. Using fallback version 0.0.0');
+            \Log::warning('updraft.app.version is not set in config. Using fallback version 0.0.0');
         }
 
         // Check PHP version

@@ -3,12 +3,25 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | Laravel Updraft Configuration
+    | Updraft Configuration
     |--------------------------------------------------------------------------
     |
-    | This file contains the configuration for the Laravel Updraft package.
+    | This file contains the configuration for the Updraft package.
     |
     */
+
+    /*
+    |--------------------------------------------------------------------------
+    | App Version
+    |--------------------------------------------------------------------------
+    |
+    | The current version of your application. This will be used to determine
+    | compatibility with update packages.
+    |
+    */
+    'app' => [
+        'version' => env('APP_VERSION', '1.0.0'),
+    ],
 
     /*
     |--------------------------------------------------------------------------
@@ -69,6 +82,6 @@ return [
     | Default is 'layouts.app' which is common in Laravel applications.
     |
     */
-    'layout' => 'laravel-updraft::layouts.app',
+    'layout' => 'updraft::layouts.app',
     'content'=> 'content',
 ];

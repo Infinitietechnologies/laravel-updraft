@@ -67,12 +67,36 @@ class UpdateProcessor
 
         $manifest = json_decode(file_get_contents($manifestPath), true);
 
-        if (isset($manifest['configFiles']) && count($manifest['configFiles']) > 0) {
-            foreach ($manifest['configFiles'] as $config) {
-                $sourcePath = $extractPath . '/config/' . $config;
-                $destPath = config_path($config);
+        if (isset($manifest['configFiles'])) {
+            // Check if configFiles is an associative array (new format)
+            if (is_array($manifest['configFiles']) && array_keys($manifest['configFiles']) !== range(0, count($manifest['configFiles']) - 1)) {
+                foreach ($manifest['configFiles'] as $sourcePath => $destConfig) {
+                    $source = $extractPath . '/config/' . basename($sourcePath);
+                    $destination = config_path($destConfig);
 
-                copy($sourcePath, $destPath);
+                    // Create destination directory if it doesn't exist
+                    $destDir = dirname($destination);
+                    if (!is_dir($destDir)) {
+                        mkdir($destDir, 0755, true);
+                    }
+
+                    copy($source, $destination);
+                }
+            }
+            // Otherwise, it's the simple array format (old format)
+            else if (is_array($manifest['configFiles']) && count($manifest['configFiles']) > 0) {
+                foreach ($manifest['configFiles'] as $config) {
+                    $sourcePath = $extractPath . '/config/' . $config;
+                    $destPath = config_path($config);
+
+                    // Create destination directory if it doesn't exist
+                    $destDir = dirname($destPath);
+                    if (!is_dir($destDir)) {
+                        mkdir($destDir, 0755, true);
+                    }
+
+                    copy($sourcePath, $destPath);
+                }
             }
         }
     }

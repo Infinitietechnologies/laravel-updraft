@@ -1,7 +1,7 @@
 {
   "postUpdateCommands": [
-    "php artisan cache:clear",
-    "php artisan config:cache",
-    "php artisan view:cache"
+    "cache:clear",
+    "config:cache",
+    "view:cache"
   ]
 }

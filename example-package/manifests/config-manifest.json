@@ -1,6 +1,5 @@
 {
-  "configFiles": [
-    "new-feature.php",
-    "updated-config.php"
-  ]
+  "configFiles": {
+    "config/new-feature.php": "config/new-feature.php"
+  }
 }

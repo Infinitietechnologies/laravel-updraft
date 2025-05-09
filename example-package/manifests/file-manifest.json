@@ -1,8 +1,8 @@
 {
-  "added": [
-    "app/Models/NewFeature.php",
-    "resources/views/new-feature/index.blade.php"
-  ],
-  "modified": [],
+  "added": {
+    "files/app/Models/NewFeature.php": "app/Models/NewFeature.php",
+    "files/resources/views/new-feature/index.blade.php": "resources/views/new-feature/index.blade.php"
+  },
+  "modified": {},
   "deleted": []
 }
